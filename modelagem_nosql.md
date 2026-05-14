@@ -1,11 +1,8 @@
 # Modelagem NoSQL: Hierarquia de Informações e Documentos por Coleção
-
-**Universidade Federal de Uberlândia - Curso de Gestão da Informação**
-**Disciplina: Banco de Dados NoSQL**
 **Sistema: Rastreamento e Vigilância de Cadeia de Suprimentos**
 
 ---
-
+<img src="./files/nosql-agregacao.svg" width="700" height="800">
 ## 1. Hierarquia de Informações e Agregações
 
 A funcionalidade principal do sistema é rastrear a jornada de um produto ao longo de toda a cadeia de suprimentos identificando comportamentos suspeitos que possam indicar fraude, desvio ou perda. O sujeito central de todas as operações é o **produto**: é sobre ele que o sistema faz perguntas, é a partir dele que anomalias são detectadas.
