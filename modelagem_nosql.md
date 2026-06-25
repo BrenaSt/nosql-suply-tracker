@@ -5,7 +5,7 @@
 
 ## 1. Hierarquia de Informações e Agregações
 
-<img src="./files/modelagem.png" width="960" height="700">
+<img src="./files/modelagem.png" width="400" height="600">
 
 ---
 
