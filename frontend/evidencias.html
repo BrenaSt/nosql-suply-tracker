@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Laboratorio de evidencias das operacoes INSERT, FIND, UPDATE e DELETE nas colecoes do sistema Origem Certa."
+    />
+    <meta name="theme-color" content="#12355B" />
+    <title>Origem Certa | Evidências CRUD</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="evidencias.css?v=20260623" />
+  </head>
+  <body>
+    <header class="evidence-header">
+      <a class="evidence-brand" href="index.html">
+        <span>OC</span>
+        <strong>ORIGEM CERTA</strong>
+      </a>
+      <nav aria-label="Navegação das evidências">
+        <a href="index.html">Aplicação</a>
+        <a class="is-active" href="evidencias.html">Laboratório CRUD</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="evidence-hero">
+        <div>
+          <p class="eyebrow">comprovação prática</p>
+          <h1>CRUD das coleções</h1>
+          <p>
+            Execute as quatro operações, acompanhe a alteração do documento e use esta tela como
+            evidência técnica no repositório.
+          </p>
+        </div>
+        <div class="local-badge">
+          <span></span>
+          <div>
+            <strong id="mongoConnectionTitle">Conectando ao MongoDB</strong>
+            <small id="mongoConnectionDetail">aguarde a verificação</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="collection-summary" id="collectionSummary" aria-label="Resumo das coleções"></section>
+
+      <section class="crud-lab">
+        <aside class="lab-controls">
+          <div class="panel-heading">
+            <p class="eyebrow">operação</p>
+            <h2>Executar CRUD</h2>
+          </div>
+
+          <label>
+            <span>Coleção</span>
+            <select id="evidenceCollection"></select>
+          </label>
+
+          <div class="operation-tabs" role="tablist" aria-label="Operações CRUD">
+            <button class="is-active" type="button" data-operation="find">FIND</button>
+            <button type="button" data-operation="insert">INSERT</button>
+            <button type="button" data-operation="update">UPDATE</button>
+            <button class="is-danger" type="button" data-operation="delete">DELETE</button>
+          </div>
+
+          <label>
+            <span id="keyLabel">Consulta ou chave</span>
+            <input id="evidenceKey" type="text" />
+          </label>
+
+          <label id="documentField">
+            <span>Documento JSON</span>
+            <textarea id="evidenceDocument" spellcheck="false"></textarea>
+          </label>
+
+          <div class="control-actions">
+            <button class="primary-button" id="executeEvidence" type="button">Executar FIND</button>
+            <button class="secondary-button" id="loadExample" type="button">Carregar exemplo</button>
+          </div>
+
+          <div class="demonstration-actions">
+            <button id="runFullDemo" type="button">Executar demonstração completa</button>
+            <button id="refreshEvidenceData" type="button">Atualizar coleções</button>
+          </div>
+        </aside>
+
+        <section class="lab-result" aria-live="polite">
+          <div class="result-header">
+            <div>
+              <span class="operation-label" id="operationLabel">FIND</span>
+              <h2 id="resultTitle">Resultado da consulta</h2>
+            </div>
+            <div class="result-state" id="resultState">aguardando execução</div>
+          </div>
+
+          <div class="proof-grid">
+            <article>
+              <header>
+                <strong>Comando executado</strong>
+                <span id="commandMethod">FIND</span>
+              </header>
+              <pre id="commandPreview">db.produtos.find({})</pre>
+            </article>
+            <article>
+              <header>
+                <strong>Resultado retornado</strong>
+                <span id="affectedCount">0 documento(s)</span>
+              </header>
+              <pre id="operationResult">{}</pre>
+            </article>
+          </div>
+
+          <div class="collection-viewer">
+            <header>
+              <div>
+                <p class="eyebrow">coleção selecionada</p>
+                <h3 id="collectionTitle">produtos</h3>
+              </div>
+              <span id="collectionCount">0 documentos</span>
+            </header>
+            <div class="documents-grid" id="documentsGrid"></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="operation-log">
+        <header>
+          <div>
+            <p class="eyebrow">trilha de evidências</p>
+            <h2>Histórico das operações</h2>
+          </div>
+          <button id="clearEvidenceLog" type="button">Limpar histórico</button>
+        </header>
+        <div id="operationLog"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Origem Certa · demonstração acadêmica de CRUD em coleções NoSQL</p>
+      <a href="../docs/evidencias_crud/README.md">Roteiro das evidências</a>
+    </footer>
+
+    <script src="mongo-web.js?v=20260624-login"></script>
+    <script src="evidencias.js?v=20260624-login"></script>
+  </body>
+</html>

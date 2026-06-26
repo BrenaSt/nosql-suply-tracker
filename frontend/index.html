@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Origem Certa e um aplicativo desktop local de rastreamento de cadeia de suprimentos com CRUD direto no MongoDB."
+    />
+    <meta
+      name="keywords"
+      content="rastreamento de produtos, cadeia de suprimentos, NoSQL, MongoDB, Node.js, CRUD, autenticidade, auditoria"
+    />
+    <meta name="author" content="Origem Certa" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#12355B" />
+    <link rel="canonical" href="https://nosql-suply.free.nf/" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Origem Certa" />
+    <meta property="og:title" content="Origem Certa | Rastreamento de cadeia de suprimentos" />
+    <meta
+      property="og:description"
+      content="Monitore produtos, lotes, movimentacoes, alertas e notas fiscais em um aplicativo local conectado ao MongoDB."
+    />
+    <meta property="og:url" content="https://nosql-suply.free.nf/" />
+    <meta property="og:image" content="https://nosql-suply.free.nf/og-image.png" />
+    <meta property="og:image:secure_url" content="https://nosql-suply.free.nf/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Origem Certa: rastreamento de cadeia de suprimentos" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Origem Certa | Rastreamento de cadeia de suprimentos" />
+    <meta
+      name="twitter:description"
+      content="Valide origem, rota e auditoria de produtos com Node.js e MongoDB."
+    />
+    <meta name="twitter:image" content="https://nosql-suply.free.nf/og-image.png" />
+    <title>Origem Certa | Rastreamento de cadeia de suprimentos</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css?v=20260624-authfix5" />
+  </head>
+  <body class="is-guest">
+    <a class="skip-link" href="#main">Pular para o conteúdo</a>
+
+    <div class="site-loader" aria-hidden="true">
+      <div class="loader-glow"></div>
+      <div class="loader-road"></div>
+      <div class="loader-smoke smoke-one"></div>
+      <div class="loader-smoke smoke-two"></div>
+      <div class="loader-smoke smoke-three"></div>
+      <div class="loader-truck">
+        <span class="loader-truck-box"></span>
+        <span class="loader-truck-cab"></span>
+        <span class="loader-truck-wheel loader-truck-wheel-one"></span>
+        <span class="loader-truck-wheel loader-truck-wheel-two"></span>
+      </div>
+      <strong>ORIGEM CERTA</strong>
+    </div>
+
+    <header class="site-header" data-elevated="false">
+      <nav class="nav-shell" aria-label="Navegação principal">
+        <a class="brand" href="#inicio" aria-label="Origem Certa">
+          <span class="brand-mark" aria-hidden="true">OC</span>
+          <span>ORIGEM CERTA</span>
+        </a>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="navLinks">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="sr-only">Abrir menu</span>
+        </button>
+        <div class="nav-links" id="navLinks">
+          <div class="nav-tracking">
+            <button
+              class="nav-option nav-track-toggle"
+              id="trackingMenuToggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="trackingNavMenu"
+            >
+              Rastrear produto
+              <span aria-hidden="true">⌄</span>
+            </button>
+            <div class="nav-tracking-menu" id="trackingNavMenu">
+              <button type="button" data-track-tab="produtos">
+                <strong>Buscar produto</strong>
+                <small>FIND por código, nome ou lote</small>
+              </button>
+              <button type="button" data-open-feature="alertas" data-module-action="insert">
+                <strong>Criar alerta</strong>
+                <small>Registrar uma ocorrência</small>
+              </button>
+              <button type="button" data-track-tab="movimentacoes">
+                <strong>Buscar movimentação</strong>
+                <small>Consultar o histórico logístico</small>
+              </button>
+              <button type="button" data-track-tab="locais">
+                <strong>Consultar locais</strong>
+                <small>Visualizar pontos da cadeia</small>
+              </button>
+            </div>
+          </div>
+          <button
+            class="nav-option nav-account"
+            type="button"
+            data-open-feature="contas"
+            data-module-action="insert"
+          >
+            Criar conta
+          </button>
+          <button
+            class="nav-option nav-products"
+            type="button"
+            data-open-feature="produtos"
+            data-module-action="insert"
+          >
+            Cadastro de produtos
+          </button>
+          <a class="nav-option nav-dashboard" href="#resumo-title">Dashboard de indicadores</a>
+          <button class="nav-session" id="sessionButton" type="button">Entrar</button>
+        </div>
+        <div class="nav-delivery-line" aria-hidden="true">
+          <span class="nav-mini-truck">
+            <span class="nav-mini-box"></span>
+            <span class="nav-mini-cab"></span>
+            <span class="nav-mini-wheel nav-mini-wheel-one"></span>
+            <span class="nav-mini-wheel nav-mini-wheel-two"></span>
+          </span>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="inicio">
+        <div class="shape shape-one" aria-hidden="true"></div>
+        <div class="shape shape-two" aria-hidden="true"></div>
+        <div class="noise-layer" aria-hidden="true"></div>
+        <div class="hero-copy reveal">
+          <p class="eyebrow">sistema de rastreamento</p>
+          <h1>acompanhe a origem. confirme a <span>autenticidade.</span></h1>
+          <p>
+            Monitore a rota de produtos, valide procedência e identifique indícios de fraude com
+            dados organizados em agregados NoSQL.
+          </p>
+          <form class="track-form" id="heroSearch">
+            <label class="sr-only" for="heroCode">Código, nome ou lote</label>
+            <input id="heroCode" name="codigo" type="search" placeholder="Digite código, nome ou lote" />
+            <button type="submit">Rastrear agora</button>
+          </form>
+        </div>
+
+        <div class="hero-visual reveal" aria-label="Representação visual da cadeia de suprimentos">
+          <img
+            class="hero-illustration"
+            src="hero-illustration.svg"
+            alt="Caminhão de entrega, celular com checklist e marcador de localização"
+          />
+        </div>
+        <a class="scroll-cue" href="#operacoes" data-open-feature="rastreamento" aria-label="Ir para rastreamento">↓</a>
+      </section>
+
+      <section class="summary reveal-section" aria-labelledby="resumo-title">
+        <div class="summary-inner section-shell">
+          <div class="summary-heading reveal">
+          <p class="eyebrow">painel resumido</p>
+          <h2 id="resumo-title">indicadores em tempo real</h2>
+          </div>
+          <div class="summary-grid" id="statsGrid">
+            <article class="metric-card">
+              <span>Produtos rastreados</span>
+              <strong data-stat="produtos_rastreados">0</strong>
+              <small>consultas no sistema</small>
+            </article>
+            <article class="metric-card">
+              <span>Produtos autenticados</span>
+              <strong data-stat="produtos_autenticados">0</strong>
+              <small>procedência confirmada</small>
+            </article>
+            <article class="metric-card">
+              <span>Alertas analisados</span>
+              <strong data-stat="alertas_analisados">0</strong>
+              <small>riscos avaliados</small>
+            </article>
+            <article class="metric-card">
+              <span>Fraudes bloqueadas</span>
+              <strong data-stat="tentativas_fraude_bloqueadas">0</strong>
+              <small>tentativas críticas</small>
+            </article>
+          </div>
+          <p class="mongo-status" id="mongoStatus">Conectando diretamente ao MongoDB...</p>
+        </div>
+      </section>
+
+      <section class="feature-hub section-shell reveal-section" id="operacoes" aria-labelledby="feature-hub-title">
+        <div class="feature-hub-heading reveal">
+          <div>
+            <p class="eyebrow">central de funcionalidades</p>
+            <h2 id="feature-hub-title">operações da cadeia</h2>
+          </div>
+          <p>
+            Entre com sua conta e acesse consultas, cadastros e indicadores em um único ambiente.
+          </p>
+        </div>
+        <div class="feature-tabs" role="tablist" aria-label="Funcionalidades do sistema">
+          <button class="feature-tab is-active" type="button" role="tab" aria-selected="true" data-feature="rastreamento">
+            <span>01</span>
+            <strong>Rastrear produto</strong>
+            <small>Buscar produto, alertas, movimentações e locais</small>
+            <b>Ver opções ↓</b>
+          </button>
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-feature="contas">
+            <span>02</span>
+            <strong>Criar conta</strong>
+            <small>Gerenciar usuários e perfis de acesso</small>
+          </button>
+          <button class="feature-tab" type="button" role="tab" aria-selected="false" data-feature="produtos">
+            <span>03</span>
+            <strong>Cadastro de produtos</strong>
+            <small>Inserir, atualizar e remover produtos</small>
+          </button>
+          <button class="feature-tab feature-dashboard-card" type="button" role="tab" aria-selected="false" data-dashboard>
+            <span>04</span>
+            <strong>Dashboard de indicadores</strong>
+            <small>Acompanhar números e riscos do sistema</small>
+          </button>
+        </div>
+
+        <div class="tracking-branch" id="trackingBranch" aria-label="Ações disponíveis em rastrear produto" hidden>
+          <div class="tracking-branch-head">
+            <div>
+              <span>Rastreamento</span>
+              <strong>Escolha o que deseja consultar</strong>
+            </div>
+            <button type="button" id="closeTrackingBranch" aria-label="Fechar opções">×</button>
+          </div>
+          <div class="tracking-branch-actions">
+            <button type="button" data-track-tab="produtos">
+              <strong>Buscar produto</strong>
+              <small>FIND por código, nome ou lote</small>
+              <span aria-hidden="true">→</span>
+            </button>
+            <button type="button" data-open-feature="alertas" data-module-action="insert">
+              <strong>Criar alerta</strong>
+              <small>Registrar uma nova ocorrência</small>
+              <span aria-hidden="true">→</span>
+            </button>
+            <button type="button" data-track-tab="movimentacoes">
+              <strong>Buscar movimentação</strong>
+              <small>Consultar o histórico logístico</small>
+              <span aria-hidden="true">→</span>
+            </button>
+            <button type="button" data-track-tab="locais">
+              <strong>Consultar locais</strong>
+              <small>Ver pontos da cadeia de suprimentos</small>
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="workspace section-shell feature-panel is-active"
+        id="rastreamento"
+        data-feature-panel="rastreamento"
+      >
+        <div class="login-gate reveal">
+          <span>Área exclusiva</span>
+          <h2>entre para rastrear produtos</h2>
+          <p>As consultas usam os dados conectados ao MongoDB e ficam disponíveis após o login.</p>
+          <button class="primary-link open-login" type="button">Entrar no sistema</button>
+        </div>
+
+        <div class="workspace-head reveal">
+          <div>
+            <p class="eyebrow">central operacional</p>
+            <h2>rastreamento do produto</h2>
+          </div>
+          <button class="ghost-button" type="button" id="simulateAlert">Atualizar dados</button>
+        </div>
+
+        <div class="app-panel reveal">
+          <div class="tabs" role="tablist" aria-label="Dados da cadeia de suprimentos">
+            <button class="tab is-active" type="button" data-tab="produtos">Produtos</button>
+            <button class="tab" type="button" data-tab="movimentacoes">Movimentações</button>
+            <button class="tab" type="button" data-tab="alertas">Alertas <span id="alertCount">0</span></button>
+            <button class="tab" type="button" data-tab="locais">Locais</button>
+            <button class="tab" type="button" data-tab="notas">Notas fiscais</button>
+          </div>
+
+          <form class="find-toolbar" id="trackingFindForm">
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input id="productSearch" type="search" placeholder="Buscar por código, nome ou lote..." />
+            </label>
+            <button class="find-button" type="submit">Executar FIND</button>
+          </form>
+
+          <div class="find-evidence" id="findEvidence" data-state="idle" aria-live="polite">
+            <span>FIND</span>
+            <div>
+              <strong>Consulta pronta</strong>
+              <code>db.produtos.find({})</code>
+            </div>
+          </div>
+
+          <div class="panel-grid">
+            <section class="list-panel" aria-label="Lista de registros">
+              <details class="record-dropdown">
+                <summary>
+                  <span id="recordSummaryTitle">Rastreios disponíveis</span>
+                  <strong id="recordCount">0</strong>
+                </summary>
+                <div id="recordList" class="record-list"></div>
+              </details>
+            </section>
+            <aside class="detail-panel" id="detailPanel" aria-label="Detalhes do produto"></aside>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="module-section section-shell feature-panel"
+        id="gestao"
+        data-feature-panel="modulo"
+        aria-labelledby="module-title"
+        hidden
+      >
+        <div class="login-gate reveal">
+          <span>Área administrativa</span>
+          <h2>faça login para continuar</h2>
+          <p>INSERT, UPDATE e DELETE estão disponíveis somente para usuários autenticados.</p>
+          <button class="primary-link open-login" type="button">Entrar no sistema</button>
+        </div>
+
+        <div class="module-layout reveal">
+          <aside class="module-sidebar">
+            <div class="module-intro">
+              <span class="module-number" id="moduleNumber">02</span>
+              <p class="eyebrow" id="moduleEyebrow">coleção usuarios</p>
+              <h2 id="module-title">gestão de contas</h2>
+              <p id="moduleDescription">
+                Crie perfis de operador, auditor e gestor ou remova contas que não devem mais acessar o sistema.
+              </p>
+            </div>
+
+            <label class="base-entity-field" id="baseEntityField" hidden>
+              <span>Tipo de cadastro</span>
+              <select id="baseEntitySelect">
+                <option value="lotes">Lote</option>
+                <option value="locais">Local</option>
+                <option value="notas">Nota fiscal</option>
+              </select>
+            </label>
+
+            <div class="module-actions" id="moduleActions" role="tablist" aria-label="Operações CRUD"></div>
+
+            <label class="module-search">
+              <span>Localizar registro</span>
+              <input id="moduleSearch" type="search" placeholder="Buscar nos registros carregados" />
+            </label>
+
+            <details class="module-records" open>
+              <summary>
+                <span>Registros existentes</span>
+                <strong id="moduleRecordCount">0</strong>
+              </summary>
+              <div id="moduleRecordList"></div>
+            </details>
+          </aside>
+
+          <section class="module-workspace" aria-label="Formulário da funcionalidade">
+            <div class="module-workspace-head">
+              <div>
+                <span class="operation-badge" id="moduleOperationBadge">INSERT</span>
+                <h3 id="moduleFormTitle">Criar conta</h3>
+                <p id="moduleFormDescription">Preencha os dados do novo usuário autorizado.</p>
+              </div>
+              <button class="ghost-button" type="button" id="moduleRefresh">Atualizar dados</button>
+            </div>
+
+            <form class="module-form" id="moduleForm"></form>
+
+            <div class="module-response">
+              <div>
+                <strong>Resultado do MongoDB</strong>
+                <span id="moduleResponseStatus">aguardando operação</span>
+              </div>
+              <pre id="moduleResponse">{}</pre>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="section-shell footer-grid">
+        <div>
+          <a class="brand" href="#inicio"><span class="brand-mark" aria-hidden="true">OC</span> origem certa</a>
+          <p>Plataforma acadêmica para rastreamento, autenticidade e prevenção de fraudes.</p>
+        </div>
+        <nav aria-label="Rodapé">
+          <a href="#inicio">Início</a>
+          <a href="#operacoes">Funcionalidades</a>
+          <a href="#operacoes" data-open-feature="rastreamento">Rastreamento</a>
+          <a href="evidencias.html">Evidências CRUD</a>
+        </nav>
+      </div>
+    </footer>
+
+    <dialog class="login-dialog" id="loginDialog">
+      <div class="login-dialog-visual" aria-hidden="true">
+        <span>OC</span>
+        <strong>dados em movimento,<br />acesso sob controle.</strong>
+        <div class="login-route">
+          <i></i>
+          <i></i>
+          <i></i>
+        </div>
+      </div>
+      <div class="login-dialog-content">
+        <button class="login-close" id="loginClose" type="button" aria-label="Fechar login">×</button>
+        <p class="eyebrow">acesso ao sistema</p>
+        <h2 id="authDialogTitle">entrar na origem certa</h2>
+        <p id="authDialogDescription">Use uma conta autorizada para consultar e modificar as coleções.</p>
+        <div class="auth-mode" role="tablist" aria-label="Acesso à conta">
+          <button class="is-active" type="button" role="tab" aria-selected="true" data-auth-mode="login">
+            Entrar
+          </button>
+          <button type="button" role="tab" aria-selected="false" data-auth-mode="register">
+            Criar conta
+          </button>
+        </div>
+        <form id="loginForm">
+          <label class="register-field" hidden>
+            <span>Nome completo</span>
+            <input id="registerName" name="nome" autocomplete="name" />
+          </label>
+          <label class="register-field" hidden>
+            <span>E-mail</span>
+            <input id="registerEmail" name="email" type="email" autocomplete="email" />
+          </label>
+          <label>
+            <span id="loginUserLabel">Usuário ou e-mail</span>
+            <input id="loginUser" name="login" autocomplete="username" minlength="2" required />
+          </label>
+          <label>
+            <span>Senha</span>
+            <input id="loginPassword" name="senha" type="password" autocomplete="current-password" minlength="4" required />
+          </label>
+          <p class="login-error" id="loginError" role="alert"></p>
+          <button class="primary-link" id="authSubmit" type="submit">Entrar</button>
+        </form>
+        <div class="demo-credentials">
+          <span>Conta de demonstração configurada no ambiente local</span>
+          <code>usuário: admin</code>
+          <code>senha: 1234</code>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="mongo-web.js?v=20260624-authfix5"></script>
+    <script src="app.js?v=20260624-authfix5"></script>
+  </body>
+</html>

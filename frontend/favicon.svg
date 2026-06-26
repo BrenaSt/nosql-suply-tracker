@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Origem Certa</title>
+  <rect width="64" height="64" rx="14" fill="#F5F7FA"/>
+  <path d="M13 34h21l5-10h4c1.7 0 3 1.3 3 3v19H13V34Z" fill="#FFFFFF" stroke="#12355B" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M46 31h8l4 13h-12V31Z" fill="#14B8A6" stroke="#12355B" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M15 7c-7 0-12 5.3-12 12.1C3 29.8 15 42 15 42s12-12.2 12-22.9C27 12.3 22 7 15 7Z" fill="#2563EB" stroke="#12355B" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="15" cy="19" r="6" fill="#F5F7FA" stroke="#12355B" stroke-width="3"/>
+  <circle cx="22" cy="49" r="7" fill="#2563EB" stroke="#12355B" stroke-width="3"/>
+  <circle cx="51" cy="49" r="7" fill="#2563EB" stroke="#12355B" stroke-width="3"/>
+  <circle cx="22" cy="49" r="2.2" fill="#F5F7FA"/>
+  <circle cx="51" cy="49" r="2.2" fill="#F5F7FA"/>
+  <path d="M34 49h10" stroke="#12355B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M48 41h3" stroke="#12355B" stroke-width="3" stroke-linecap="round"/>
+</svg>
