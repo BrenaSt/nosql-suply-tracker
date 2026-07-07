@@ -186,7 +186,7 @@ main {
 
 .collection-summary {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 24px;
 }
@@ -526,6 +526,102 @@ pre {
   border-top: 1px solid var(--line);
 }
 
+.aggregation-lab {
+  margin-top: 42px;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 28px 80px rgba(18, 53, 91, 0.1);
+}
+
+.aggregation-lab .panel-heading p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.aggregation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.aggregation-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.aggregation-card h3 {
+  margin: 0 0 8px;
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+
+.aggregation-card > p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.aggregation-card code {
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.aggregation-sample-size {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.aggregation-sample-size span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.aggregation-sample-size input {
+  width: 100px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.aggregation-result {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.aggregation-result pre {
+  max-height: 220px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+}
+
+.aggregation-meta {
+  color: var(--blue);
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.aggregation-result[data-state="error"] .aggregation-meta {
+  color: var(--danger);
+}
+
 .operation-log {
   margin-top: 42px;
 }
@@ -656,7 +752,8 @@ footer a {
   .control-actions,
   .demonstration-actions,
   .proof-grid,
-  .documents-grid {
+  .documents-grid,
+  .aggregation-grid {
     grid-template-columns: 1fr;
   }
 

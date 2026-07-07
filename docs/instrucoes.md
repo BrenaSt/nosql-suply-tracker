@@ -35,16 +35,17 @@ frontend/styles.css
 frontend/app.js
 ```
 
+> **Nota (atualização desta entrega):** o banco real hoje tem só 2 coleções (`produtos` e
+> `usuarios`, com alertas/movimentações/locais/nota fiscal embutidos no documento do produto).
+> As abas abaixo descrevem a interface **atual**, já ajustada a esse schema; o texto original
+> desta seção (7 coleções separadas) está desatualizado e o plano de reforma completa do
+> frontend está em [`../PLANO_REFATORACAO_FRONTEND.md`](../PLANO_REFATORACAO_FRONTEND.md).
+
 A interface possui abas para:
 
-- rastreamento;
-- contas;
-- produtos;
-- alertas;
-- movimentações;
-- lotes;
-- locais;
-- notas fiscais.
+- rastreamento (produtos, com alertas e movimentações embutidos, somente leitura);
+- contas (CRUD de `usuarios`);
+- produtos (CRUD de `produtos`).
 
 Os campos dos formulários são definidos no objeto `ENTITY_FIELDS` de `app.js`.
 
@@ -81,28 +82,28 @@ await collection.delete_many({})
 await collection.insert_many(documents)
 ```
 
-Coleções criadas:
+Coleções criadas (schema embutido, ver `README.md` > Coleções):
 
 | Coleção | Quantidade | Chave |
 |---|---:|---|
-| produtos | 120 | codigo |
-| lotes | 120 | codigo |
-| movimentacoes | 240 | codigo |
-| alertas | 120 | codigo |
-| locais | 120 | nome |
-| notas_fiscais | 120 | numero |
+| produtos | 80 | codigo |
 | usuarios | 5 | email |
 
-Índices:
+Índices (os 8 já existentes no Atlas + os 2 novos desta entrega, ver `README.md` > Índices):
 
 ```python
 await db.produtos.create_index("codigo", unique=True)
-await db.lotes.create_index("codigo", unique=True)
-await db.movimentacoes.create_index("codigo", unique=True)
-await db.alertas.create_index("codigo", unique=True)
-await db.locais.create_index("nome", unique=True)
-await db.notas_fiscais.create_index("numero", unique=True)
+await db.produtos.create_index("nota_fiscal.numero", unique=True)
+await db.produtos.create_index("usuarios_associados.destinatario.email")
+await db.produtos.create_index("usuarios_associados.recebedor.email")
+await db.produtos.create_index("alertas.codigo")
 await db.usuarios.create_index("email", unique=True)
+await db.usuarios.create_index("login", unique=True)
+await db.usuarios.create_index("produtos_destinados.codigo")
+
+# Novos (sustentam as 2 aggregation pipelines desta entrega)
+await db.produtos.create_index([("alertas.status", 1), ("alertas.gravidade", 1)], name="alertas.status_gravidade")
+await db.usuarios.create_index([("ativo", 1), ("setor", 1)], name="ativo_setor")
 ```
 
 ## 4. Servidor local do site
@@ -273,7 +274,10 @@ A tela apresenta:
 - comando MongoDB correspondente;
 - JSON retornado;
 - documentos da coleção;
-- histórico da sessão.
+- histórico da sessão;
+- **Laboratório de Agregações** (nesta entrega): 2 botões que rodam as aggregation pipelines
+  descritas em `README.md` > Aggregation Pipelines e mostram o pipeline em JSON, a contagem de
+  documentos e uma amostra do resultado.
 
 ## 11. Como executar
 

@@ -6,26 +6,15 @@ const fallback = {
     tentativas_fraude_bloqueadas: 0,
   },
   produtos: [],
-  alertas: [],
-  locais: [],
-  lotes: [],
-  notas: [],
-  movimentacoes: [],
   usuarios: [],
 };
 
 let state = {
   tab: "produtos",
   produtos: [],
-  alertas: [],
-  locais: [],
-  lotes: [],
-  notas: [],
-  movimentacoes: [],
   usuarios: [],
   selected: null,
   selectedAlert: null,
-  selectedRecord: null,
   authenticated: false,
   user: null,
   pendingAction: null,
@@ -34,7 +23,6 @@ let state = {
   feature: "rastreamento",
   module: "contas",
   moduleAction: "insert",
-  baseEntity: "lotes",
   moduleSelectedRecord: null,
   findResults: {},
   findMeta: null,
@@ -49,28 +37,8 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 const TRACKING_COLLECTIONS = {
   produtos: {
     collection: "produtos",
-    placeholder: "Buscar por código, nome ou lote...",
-    empty: "Tente outro código, nome ou lote.",
-  },
-  movimentacoes: {
-    collection: "movimentacoes",
-    placeholder: "Buscar por código, produto, lote ou tipo...",
-    empty: "Tente outro código, produto, lote ou tipo de movimentação.",
-  },
-  alertas: {
-    collection: "alertas",
-    placeholder: "Buscar por código, tipo, produto ou lote...",
-    empty: "Tente outro código, tipo, produto ou lote.",
-  },
-  locais: {
-    collection: "locais",
-    placeholder: "Buscar por nome, cidade ou estado...",
-    empty: "Tente outro nome, cidade ou estado.",
-  },
-  notas: {
-    collection: "notas",
-    placeholder: "Buscar por número, emissor ou destinatário...",
-    empty: "Tente outro número, emissor ou destinatário.",
+    placeholder: "Buscar por código, nome, categoria ou fabricante...",
+    empty: "Tente outro código, nome, categoria ou fabricante.",
   },
 };
 
@@ -84,101 +52,8 @@ const CRUD_CONFIG = {
       codigo: "PROD-DEMO-0001",
       nome: "Produto Demo 500g",
       categoria: "alimentos",
-      lote: "LOTE-DEMO-2026-0001",
       fabricante: "Origem Certa Demo",
-      status_atual: "cadastrado",
-      localizacao_atual: { nome: "Armazem Demo", cidade: "Uberlandia", estado: "MG" },
-      ultima_movimentacao: "produto_cadastrado",
-      ultimas_movimentacoes: [
-        { tipo: "produto_cadastrado", data_hora: "2026-06-23T09:00:00Z", local: "Armazem Demo" },
-      ],
-      alertas_ativos: [],
-    },
-  },
-  lotes: {
-    label: "Lotes",
-    endpoint: "lotes",
-    stateKey: "lotes",
-    keyField: "codigo",
-    template: {
-      codigo: "LOTE-DEMO-2026-0001",
-      produto_base: "Produto Demo 500g",
-      fabricante: "Origem Certa Demo",
-      origem: "Fabrica Demo",
-      destino_previsto: "Loja Demo",
-      quantidade_prevista: 100,
-      quantidade_confirmada: 100,
-      status: "cadastrado",
-      nota_fiscal: "NF-DEMO-00001",
-      indicadores_risco: { possui_alerta: false, nivel_risco: "baixo" },
-    },
-  },
-  movimentacoes: {
-    label: "Movimentacoes",
-    endpoint: "movimentacoes",
-    stateKey: "movimentacoes",
-    keyField: "codigo",
-    template: {
-      codigo: "MOV-DEMO-0001",
-      produto: "PROD-DEMO-0001",
-      lote: "LOTE-DEMO-2026-0001",
-      tipo: "saida_fabrica",
-      status_resultante: "em_transito",
-      data_hora: "2026-06-23T10:00:00Z",
-      origem: "Fabrica Demo",
-      destino: "Armazem Demo",
-      usuario: "Operador Demo",
-      nota_fiscal: "NF-DEMO-00001",
-      quantidade_informada: 100,
-      quantidade_confirmada: 100,
-      verificacao: { resultado: "regular", motivos: [] },
-    },
-  },
-  alertas: {
-    label: "Alertas",
-    endpoint: "alertas",
-    stateKey: "alertas",
-    keyField: "codigo",
-    template: {
-      codigo: "ALT-DEMO-0001",
-      tipo: "rota_inconsistente",
-      descricao: "Produto passou por uma rota diferente da prevista.",
-      gravidade: "media",
-      status: "em_analise",
-      produto: "PROD-DEMO-0001",
-      lote: "LOTE-DEMO-2026-0001",
-      movimentacao: "saida_fabrica",
-      data_emissao: "2026-06-23T11:00:00Z",
-      responsavel_auditoria: "Auditor Demo",
-    },
-  },
-  locais: {
-    label: "Locais",
-    endpoint: "locais",
-    stateKey: "locais",
-    keyField: "nome",
-    template: {
-      nome: "Armazem Demo",
-      tipo: "armazem",
-      cidade: "Uberlandia",
-      estado: "MG",
-      pais: "Brasil",
-      coordenadas: { latitude: -18.9186, longitude: -48.2772 },
-    },
-  },
-  notas: {
-    label: "Notas fiscais",
-    endpoint: "notas",
-    stateKey: "notas",
-    keyField: "numero",
-    template: {
-      numero: "NF-DEMO-00001",
-      emissor: "Origem Certa Demo",
-      destinatario: "Loja Demo",
-      data_emissao: "2026-06-23T08:00:00Z",
-      quantidade_declarada: 100,
-      valor_total: 1500.5,
-      status_validacao: "valida",
+      status_atual: "recebido",
     },
   },
   usuarios: {
@@ -215,49 +90,14 @@ const MODULE_CONFIG = {
   produtos: {
     number: "03",
     entity: "produtos",
-    eyebrow: "agregado produto",
+    eyebrow: "coleção produtos",
     title: "gestão de produtos",
-    description: "Cadastre o item rastreado, mantenha sua localização atual ou exclua um registro pelo código.",
+    description:
+      "Cadastre o item rastreado ou atualize seu status atual. Alertas, movimentações e locais já vêm embutidos no documento e aparecem como somente leitura no rastreamento.",
     formTitles: {
       insert: "Inserir produto",
       update: "Atualizar produto",
       delete: "Deletar produto",
-    },
-  },
-  alertas: {
-    number: "04",
-    entity: "alertas",
-    eyebrow: "agregado alerta",
-    title: "alertas de risco",
-    description: "Associe uma anomalia a um produto, lote e movimentação para iniciar a análise de auditoria.",
-    formTitles: {
-      insert: "Criar alerta",
-      update: "Atualizar investigação",
-      delete: "Excluir alerta",
-    },
-  },
-  movimentacoes: {
-    number: "05",
-    entity: "movimentacoes",
-    eyebrow: "agregado movimentação",
-    title: "eventos logísticos",
-    description: "Registre saídas, entradas, transferências, conferências e entregas no histórico do produto.",
-    formTitles: {
-      insert: "Registrar movimentação",
-      update: "Corrigir movimentação",
-      delete: "Excluir movimentação",
-    },
-  },
-  base: {
-    number: "06",
-    entity: "lotes",
-    eyebrow: "coleções auxiliares",
-    title: "base logística",
-    description: "Prepare lotes, locais e notas fiscais antes de vinculá-los aos produtos e movimentações.",
-    formTitles: {
-      insert: "Cadastrar registro",
-      update: "Atualizar registro",
-      delete: "Excluir registro",
     },
   },
 };
@@ -269,7 +109,13 @@ const ENTITY_FIELDS = {
     { name: "senha", label: "Senha", type: "password", required: true },
     { name: "nome", label: "Nome completo", required: true },
     { name: "cargo", label: "Cargo", required: true },
-    { name: "perfil", label: "Perfil de acesso", type: "select", options: ["operador", "auditor", "gestor"], required: true },
+    {
+      name: "perfil",
+      label: "Perfil de acesso",
+      type: "select",
+      options: ["operador", "auditor", "gestor", "cliente"],
+      required: true,
+    },
     { name: "setor", label: "Setor", required: true },
     { name: "ativo", label: "Conta ativa", type: "checkbox" },
   ],
@@ -277,80 +123,25 @@ const ENTITY_FIELDS = {
     { name: "codigo", label: "Código do produto", required: true },
     { name: "nome", label: "Nome do produto", required: true },
     { name: "categoria", label: "Categoria", required: true },
-    { name: "lote", label: "Lote", source: "lotes", sourceValue: "codigo", required: true },
     { name: "fabricante", label: "Fabricante", required: true, wide: true },
-    { name: "status_atual", label: "Status atual", type: "select", options: ["cadastrado", "em_transito", "armazenado", "entregue", "autenticado"], required: true },
-    { name: "localizacao_atual.nome", label: "Localização atual", source: "locais", sourceValue: "nome", required: true },
-    { name: "localizacao_atual.cidade", label: "Cidade", required: true },
-    { name: "localizacao_atual.estado", label: "Estado", maxlength: 2, required: true },
-    { name: "ultima_movimentacao", label: "Última movimentação", required: true, wide: true },
-  ],
-  alertas: [
-    { name: "codigo", label: "Código do alerta", required: true },
-    { name: "tipo", label: "Tipo", type: "select", options: ["rota_inconsistente", "divergencia_quantidade", "nota_reutilizada", "consulta_duplicada", "produto_suspeito"], required: true },
-    { name: "gravidade", label: "Gravidade", type: "select", options: ["baixa", "media", "alta"], required: true },
-    { name: "status", label: "Status", type: "select", options: ["aberto", "em_analise", "resolvido", "descartado"], required: true },
-    { name: "produto", label: "Produto", source: "produtos", sourceValue: "codigo", required: true },
-    { name: "lote", label: "Lote", source: "lotes", sourceValue: "codigo", required: true },
-    { name: "movimentacao", label: "Movimentação relacionada", source: "movimentacoes", sourceValue: "codigo", required: true },
-    { name: "data_emissao", label: "Data de emissão", type: "datetime-local", dataType: "datetime", required: true },
-    { name: "responsavel_auditoria", label: "Responsável pela auditoria", source: "usuarios", sourceValue: "nome", required: true },
-    { name: "descricao", label: "Descrição da inconsistência", type: "textarea", required: true, wide: true },
-  ],
-  movimentacoes: [
-    { name: "codigo", label: "Código da movimentação", required: true },
-    { name: "produto", label: "Produto", source: "produtos", sourceValue: "codigo", required: true },
-    { name: "lote", label: "Lote", source: "lotes", sourceValue: "codigo", required: true },
-    { name: "tipo", label: "Tipo de evento", type: "select", options: ["saida_fabrica", "entrada_armazem", "transferencia", "conferencia", "entrega", "devolucao"], required: true },
-    { name: "status_resultante", label: "Status resultante", type: "select", options: ["em_transito", "armazenado", "entregue", "devolvido", "em_analise"], required: true },
-    { name: "data_hora", label: "Data e hora", type: "datetime-local", dataType: "datetime", required: true },
-    { name: "origem", label: "Origem", source: "locais", sourceValue: "nome", required: true },
-    { name: "destino", label: "Destino", source: "locais", sourceValue: "nome", required: true },
-    { name: "usuario", label: "Usuário responsável", source: "usuarios", sourceValue: "nome", required: true },
-    { name: "nota_fiscal", label: "Nota fiscal", source: "notas", sourceValue: "numero", required: true },
-    { name: "quantidade_informada", label: "Quantidade informada", type: "number", dataType: "number", required: true },
-    { name: "quantidade_confirmada", label: "Quantidade confirmada", type: "number", dataType: "number", required: true },
-    { name: "verificacao.resultado", label: "Resultado da verificação", type: "select", options: ["regular", "suspeito", "fraude"], required: true },
-    { name: "verificacao.motivos", label: "Motivos, separados por vírgula", dataType: "array", wide: true },
-  ],
-  lotes: [
-    { name: "codigo", label: "Código do lote", required: true },
-    { name: "produto_base", label: "Produto base", required: true },
-    { name: "fabricante", label: "Fabricante", required: true },
-    { name: "origem", label: "Origem", source: "locais", sourceValue: "nome", required: true },
-    { name: "destino_previsto", label: "Destino previsto", source: "locais", sourceValue: "nome", required: true },
-    { name: "quantidade_prevista", label: "Quantidade prevista", type: "number", dataType: "number", required: true },
-    { name: "quantidade_confirmada", label: "Quantidade confirmada", type: "number", dataType: "number", required: true },
-    { name: "status", label: "Status", type: "select", options: ["cadastrado", "em_transito", "armazenado", "entregue", "em_analise"], required: true },
-    { name: "nota_fiscal", label: "Nota fiscal", source: "notas", sourceValue: "numero", required: true },
-    { name: "indicadores_risco.possui_alerta", label: "Possui alerta", type: "checkbox" },
-    { name: "indicadores_risco.nivel_risco", label: "Nível de risco", type: "select", options: ["baixo", "medio", "alto"], required: true },
-  ],
-  locais: [
-    { name: "nome", label: "Nome do local", required: true, wide: true },
-    { name: "tipo", label: "Tipo", type: "select", options: ["fabrica", "armazem", "transportadora", "centro_distribuicao", "loja", "cliente"], required: true },
-    { name: "cidade", label: "Cidade", required: true },
-    { name: "estado", label: "Estado", maxlength: 2, required: true },
-    { name: "pais", label: "País", required: true },
-    { name: "coordenadas.latitude", label: "Latitude", type: "number", step: "any", dataType: "number", required: true },
-    { name: "coordenadas.longitude", label: "Longitude", type: "number", step: "any", dataType: "number", required: true },
-  ],
-  notas: [
-    { name: "numero", label: "Número da nota", required: true },
-    { name: "emissor", label: "Emissor", required: true },
-    { name: "destinatario", label: "Destinatário", required: true },
-    { name: "data_emissao", label: "Data de emissão", type: "datetime-local", dataType: "datetime", required: true },
-    { name: "quantidade_declarada", label: "Quantidade declarada", type: "number", dataType: "number", required: true },
-    { name: "valor_total", label: "Valor total", type: "number", step: "0.01", dataType: "number", required: true },
-    { name: "status_validacao", label: "Validação", type: "select", options: ["valida", "em_analise", "invalida"], required: true },
+    {
+      name: "status_atual",
+      label: "Status atual",
+      type: "select",
+      options: ["recebido", "em_transito", "em_alerta", "autenticado"],
+      required: true,
+    },
   ],
 };
 
 function statusClass(value = "") {
   const normalized = value.toLowerCase();
-  if (normalized.includes("alta") || normalized.includes("fraude") || normalized.includes("crit")) return "danger";
-  if (normalized.includes("media") || normalized.includes("médio") || normalized.includes("analise") || normalized.includes("trans")) return "warning";
-  if (normalized.includes("entreg") || normalized.includes("baixo") || normalized.includes("regular")) return "ok";
+  if (normalized.includes("alta") || normalized.includes("fraude") || normalized.includes("crit") || normalized.includes("alerta"))
+    return "danger";
+  if (normalized.includes("media") || normalized.includes("médio") || normalized.includes("analise") || normalized.includes("trans"))
+    return "warning";
+  if (normalized.includes("entreg") || normalized.includes("baixo") || normalized.includes("regular") || normalized.includes("autentic"))
+    return "ok";
   return "neutral";
 }
 
@@ -419,8 +210,10 @@ function renderStats(stats) {
 }
 
 function productCard(produto) {
-  const alert = produto.alertas_ativos?.[0];
+  const alertasAtivos = (produto.alertas || []).filter((item) => item.status !== "resolvido");
+  const alert = alertasAtivos[0];
   const status = alert?.gravidade || produto.status_atual;
+  const localAtual = produto.locais?.atual;
   const button = document.createElement("button");
   button.type = "button";
   button.className = `record-card ${state.selected?.codigo === produto.codigo ? "is-selected" : ""}`;
@@ -431,165 +224,21 @@ function productCard(produto) {
       </svg>
     </span>
     <div>
-      <h3>${produto.nome}</h3>
-      <p>${produto.codigo} · ${produto.lote}</p>
-      <small>${produto.localizacao_atual?.nome || "Local não informado"}</small>
+      <h3>${escapeHtml(produto.nome)}</h3>
+      <p>${escapeHtml(produto.codigo)} · ${escapeHtml(produto.fabricante || "fabricante não informado")}</p>
+      <small>${escapeHtml(localAtual?.nome || "Local não informado")}</small>
     </div>
     <div>
-      <span class="status-pill ${statusClass(status)}">${produto.status_atual.replaceAll("_", " ")}</span>
+      <span class="status-pill ${statusClass(status)}">${escapeHtml((produto.status_atual || "").replaceAll("_", " "))}</span>
       <br><br>
-      <span class="status-pill ${alert ? statusClass(alert.gravidade) : "neutral"}">${alert ? "alerta ativo" : "sem alertas"}</span>
+      <span class="status-pill ${alert ? statusClass(alert.gravidade) : "neutral"}">${alert ? `${alertasAtivos.length} alerta(s) ativo(s)` : "sem alertas"}</span>
     </div>
   `;
   button.addEventListener("click", () => {
     state.selected = produto;
     state.selectedAlert = null;
-    state.selectedRecord = null;
     renderList();
     renderDetails(produto);
-  });
-  return button;
-}
-
-function findProductByAlert(alerta) {
-  return state.produtos.find((produto) => {
-    return produto.codigo === alerta.produto || produto.lote === alerta.lote;
-  });
-}
-
-function alertCard(alerta) {
-  const produto = findProductByAlert(alerta);
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `record-card alert-record ${state.selectedAlert === alerta ? "is-selected" : ""}`;
-  button.innerHTML = `
-    <span class="delivery-icon delivery-icon-alert" aria-hidden="true">
-      <svg viewBox="0 0 24 24" role="img">
-        <path d="M12 2.4 22 20H2L12 2.4Zm0 5.6c-.55 0-1 .45-1 1v5.2c0 .55.45 1 1 1s1-.45 1-1V9c0-.55-.45-1-1-1Zm0 10.6a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" />
-      </svg>
-    </span>
-    <div>
-      <h3>${alerta.tipo.replaceAll("_", " ")}</h3>
-      <p>${alerta.produto} · ${alerta.lote}</p>
-      <small>${alerta.descricao}</small>
-    </div>
-    <div>
-      <span class="status-pill ${statusClass(alerta.gravidade)}">${alerta.gravidade}</span>
-      <br><br>
-      <span class="status-pill neutral">${produto ? "ver produto" : "sem produto"}</span>
-    </div>
-  `;
-  button.addEventListener("click", () => {
-    state.selected = produto || null;
-    state.selectedAlert = alerta;
-    state.selectedRecord = null;
-    renderList();
-    renderDetails(produto || null, alerta);
-  });
-  return button;
-}
-
-function findProductsByLocal(local) {
-  return state.produtos.filter((produto) => {
-    const atual = produto.localizacao_atual || {};
-    return atual.nome === local.nome || (atual.cidade === local.cidade && atual.estado === local.estado);
-  });
-}
-
-function findLoteByNota(nota) {
-  return state.lotes.find((lote) => lote.nota_fiscal === nota.numero);
-}
-
-function findProductByLote(lote) {
-  if (!lote) return null;
-  return state.produtos.find((produto) => produto.lote === lote.codigo);
-}
-
-function localCard(local) {
-  const produtosNoLocal = findProductsByLocal(local);
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `record-card local-record ${state.selectedRecord?.item === local ? "is-selected" : ""}`;
-  button.innerHTML = `
-    <span class="delivery-icon delivery-icon-location" aria-hidden="true">
-      <svg viewBox="0 0 24 24" role="img">
-        <path d="M12 2.5a7 7 0 0 0-7 7c0 5.2 7 12 7 12s7-6.8 7-12a7 7 0 0 0-7-7Zm0 9.8a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6Z" />
-      </svg>
-    </span>
-    <div>
-      <h3>${local.nome}</h3>
-      <p>${local.tipo.replaceAll("_", " ")} · ${local.cidade}/${local.estado}</p>
-      <small>${produtosNoLocal.length} produto(s) relacionado(s)</small>
-    </div>
-    <span class="status-pill neutral">ver local</span>
-  `;
-  button.addEventListener("click", () => {
-    state.selected = null;
-    state.selectedAlert = null;
-    state.selectedRecord = { type: "local", item: local };
-    renderList();
-    renderRecordDetails("local", local);
-  });
-  return button;
-}
-
-function notaCard(nota) {
-  const lote = findLoteByNota(nota);
-  const produto = findProductByLote(lote);
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `record-card nota-record ${state.selectedRecord?.item === nota ? "is-selected" : ""}`;
-  button.innerHTML = `
-    <span class="delivery-icon delivery-icon-note" aria-hidden="true">
-      <svg viewBox="0 0 24 24" role="img">
-        <path d="M6 2.8h8.6L19 7.2v14H6a2 2 0 0 1-2-2V4.8a2 2 0 0 1 2-2Zm8 1.8V8h3.4L14 4.6ZM7 11h10v1.7H7V11Zm0 4h10v1.7H7V15Zm0-8h4v1.7H7V7Z" />
-      </svg>
-    </span>
-    <div>
-      <h3>${nota.numero}</h3>
-      <p>${nota.emissor} · ${nota.destinatario}</p>
-      <small>${produto ? produto.nome : lote ? lote.produto_base : "sem produto vinculado"}</small>
-    </div>
-    <span class="status-pill ${statusClass(nota.status_validacao)}">${nota.status_validacao}</span>
-  `;
-  button.addEventListener("click", () => {
-    state.selected = produto || null;
-    state.selectedAlert = null;
-    state.selectedRecord = { type: "nota", item: nota };
-    renderList();
-    renderRecordDetails("nota", nota);
-  });
-  return button;
-}
-
-function movementCard(movimentacao) {
-  const produto = state.produtos.find((item) => item.codigo === movimentacao.produto);
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `record-card movement-record ${
-    state.selectedRecord?.item === movimentacao ? "is-selected" : ""
-  }`;
-  button.innerHTML = `
-    <span class="delivery-icon delivery-icon-movement" aria-hidden="true">
-      <svg viewBox="0 0 24 24" role="img">
-        <path d="M4 5h11v3h3.6L22 12v5h-2.1a3 3 0 0 1-5.8 0H9.9a3 3 0 0 1-5.8 0H2V7a2 2 0 0 1 2-2Zm12 5v3h3.7l-2.5-3H16ZM7 19a1.3 1.3 0 1 0 0-2.6A1.3 1.3 0 0 0 7 19Zm10 0a1.3 1.3 0 1 0 0-2.6A1.3 1.3 0 0 0 17 19ZM6 9h6v2H6V9Z" />
-      </svg>
-    </span>
-    <div>
-      <h3>${escapeHtml(movimentacao.tipo?.replaceAll("_", " ") || "movimentação")}</h3>
-      <p>${escapeHtml(movimentacao.codigo || "")} · ${escapeHtml(movimentacao.produto || "")}</p>
-      <small>${escapeHtml(movimentacao.origem || "origem não informada")} → ${escapeHtml(movimentacao.destino || "destino não informado")}</small>
-    </div>
-    <span class="status-pill ${statusClass(movimentacao.verificacao?.resultado || movimentacao.status_resultante)}">
-      ${escapeHtml(movimentacao.verificacao?.resultado || movimentacao.status_resultante || "registro")}
-    </span>
-  `;
-  button.addEventListener("click", () => {
-    state.selected = produto || null;
-    state.selectedAlert = null;
-    state.selectedRecord = { type: "movimentacao", item: movimentacao };
-    renderList();
-    renderRecordDetails("movimentacao", movimentacao);
   });
   return button;
 }
@@ -616,13 +265,9 @@ function renderList() {
   const list = $("#recordList");
   const recordCount = $("#recordCount");
   const recordSummaryTitle = $("#recordSummaryTitle");
-  const tabConfig = TRACKING_COLLECTIONS[state.tab];
   list.innerHTML = "";
   if (recordCount) recordCount.textContent = "0";
-  if (recordSummaryTitle) {
-    recordSummaryTitle.textContent =
-      state.tab === "produtos" ? "Rastreios disponíveis" : `Registros de ${state.tab}`;
-  }
+  if (recordSummaryTitle) recordSummaryTitle.textContent = "Rastreios disponíveis";
 
   if (!state.mongoOnline) {
     list.appendChild(
@@ -636,125 +281,16 @@ function renderList() {
     return;
   }
 
-  if (!state.authenticated && ["alertas", "notas"].includes(state.tab)) {
-    list.appendChild(simpleCard("Acesso restrito", "Entre como operador autorizado para consultar dados sensíveis.", "bloqueado"));
-    renderDetails(null);
-    return;
-  }
-
-  const sourceItems = state.findResults[state.tab] || state[state.tab] || [];
-  let items = sourceItems;
-
-  if (state.tab === "produtos") {
-    items.forEach((produto) => list.appendChild(productCard(produto)));
-  }
-
-  if (state.tab === "movimentacoes") {
-    items.forEach((movimentacao) => list.appendChild(movementCard(movimentacao)));
-  }
-
-  if (state.tab === "alertas") {
-    items.forEach((alerta) => list.appendChild(alertCard(alerta)));
-  }
-
-  if (state.tab === "locais") {
-    items.forEach((local) => list.appendChild(localCard(local)));
-  }
-
-  if (state.tab === "notas") {
-    items.forEach((nota) => list.appendChild(notaCard(nota)));
-  }
+  const items = state.findResults.produtos || state.produtos || [];
+  items.forEach((produto) => list.appendChild(productCard(produto)));
 
   if (!items.length) {
     list.appendChild(
-      simpleCard("Nenhum registro encontrado", tabConfig?.empty || "Tente outra consulta.", "vazio"),
+      simpleCard("Nenhum registro encontrado", TRACKING_COLLECTIONS.produtos.empty, "vazio"),
     );
   }
 
   if (recordCount) recordCount.textContent = String(items.length);
-}
-
-function renderRecordDetails(type, item) {
-  const panel = $("#detailPanel");
-  if (!state.authenticated && type === "nota") {
-    renderDetails(null);
-    return;
-  }
-
-  if (type === "local") {
-    const produtosNoLocal = findProductsByLocal(item);
-    const produtos = produtosNoLocal
-      .slice(0, 5)
-      .map((produto) => `<li>${produto.nome} <span>${produto.codigo}</span></li>`)
-      .join("");
-
-    panel.innerHTML = `
-      <span class="status-pill neutral">${item.tipo.replaceAll("_", " ")}</span>
-      <h3>${item.nome}</h3>
-      <p>${item.cidade}/${item.estado} · ${item.pais}</p>
-      <p><strong>Produtos vinculados:</strong> ${produtosNoLocal.length}</p>
-      <p><strong>Latitude:</strong> ${item.coordenadas?.latitude ?? "não informada"}</p>
-      <p><strong>Longitude:</strong> ${item.coordenadas?.longitude ?? "não informada"}</p>
-      <div class="alert-detail-card">
-        <h4>Produtos neste local</h4>
-        ${
-          produtos
-            ? `<ul class="linked-list">${produtos}</ul>`
-            : "<p>Nenhum produto está registrado neste local no momento.</p>"
-        }
-      </div>
-    `;
-    return;
-  }
-
-  if (type === "movimentacao") {
-    const produto = state.produtos.find((registro) => registro.codigo === item.produto);
-    panel.innerHTML = `
-      <span class="status-pill ${statusClass(item.verificacao?.resultado || item.status_resultante)}">
-        ${escapeHtml(item.verificacao?.resultado || item.status_resultante || "movimentação")}
-      </span>
-      <h3>${escapeHtml(item.tipo?.replaceAll("_", " ") || "movimentação logística")}</h3>
-      <p>${escapeHtml(item.codigo || "")} · ${formatDate(item.data_hora)}</p>
-      <div class="alert-detail-card">
-        <h4>Rota registrada</h4>
-        <dl>
-          <div><dt>Produto</dt><dd>${escapeHtml(produto?.nome || item.produto || "não informado")}</dd></div>
-          <div><dt>Lote</dt><dd>${escapeHtml(item.lote || "não informado")}</dd></div>
-          <div><dt>Origem</dt><dd>${escapeHtml(item.origem || "não informada")}</dd></div>
-          <div><dt>Destino</dt><dd>${escapeHtml(item.destino || "não informado")}</dd></div>
-          <div><dt>Responsável</dt><dd>${escapeHtml(item.usuario || "não informado")}</dd></div>
-          <div><dt>Nota fiscal</dt><dd>${escapeHtml(item.nota_fiscal || "não informada")}</dd></div>
-          <div><dt>Quantidade informada</dt><dd>${Number(item.quantidade_informada || 0).toLocaleString("pt-BR")}</dd></div>
-          <div><dt>Quantidade confirmada</dt><dd>${Number(item.quantidade_confirmada || 0).toLocaleString("pt-BR")}</dd></div>
-        </dl>
-      </div>
-    `;
-    return;
-  }
-
-  if (type === "nota") {
-    const lote = findLoteByNota(item);
-    const produto = findProductByLote(lote);
-    panel.innerHTML = `
-      <span class="status-pill ${statusClass(item.status_validacao)}">${item.status_validacao}</span>
-      <h3>${item.numero}</h3>
-      <p>${item.emissor} → ${item.destinatario}</p>
-      <p><strong>Emissão:</strong> ${formatDate(item.data_emissao)}</p>
-      <p><strong>Quantidade declarada:</strong> ${Number(item.quantidade_declarada || 0).toLocaleString("pt-BR")}</p>
-      <p><strong>Valor total:</strong> ${Number(item.valor_total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
-      <div class="alert-detail-card">
-        <h4>Vínculo com a cadeia</h4>
-        <dl>
-          <div><dt>Lote</dt><dd>${lote?.codigo || "não encontrado"}</dd></div>
-          <div><dt>Produto</dt><dd>${produto?.nome || lote?.produto_base || "não encontrado"}</dd></div>
-          <div><dt>Fabricante</dt><dd>${produto?.fabricante || lote?.fabricante || "não informado"}</dd></div>
-          <div><dt>Origem</dt><dd>${lote?.origem || "não informada"}</dd></div>
-          <div><dt>Destino</dt><dd>${lote?.destino_previsto || item.destinatario}</dd></div>
-          <div><dt>Risco</dt><dd>${lote?.indicadores_risco?.nivel_risco || "não informado"}</dd></div>
-        </dl>
-      </div>
-    `;
-  }
 }
 
 function renderDetails(produto = state.selected, selectedAlert = state.selectedAlert) {
@@ -766,7 +302,7 @@ function renderDetails(produto = state.selected, selectedAlert = state.selectedA
       <p>A busca pública pode validar um produto. Dados operacionais, alertas e auditoria exigem acesso autorizado e são consultados diretamente no MongoDB pelo aplicativo desktop.</p>
       <div class="timeline">
         <div class="timeline-item"><strong>Visitante</strong><span>Consulta status básico do produto</span></div>
-        <div class="timeline-item"><strong>Operador</strong><span>Registra movimentações e acompanha lotes</span></div>
+        <div class="timeline-item"><strong>Operador</strong><span>Registra movimentações e acompanha produtos</span></div>
         <div class="timeline-item"><strong>Auditor</strong><span>Analisa alertas, fraudes e inconsistências</span></div>
       </div>
     `;
@@ -776,13 +312,12 @@ function renderDetails(produto = state.selected, selectedAlert = state.selectedA
   if (!produto) {
     if (selectedAlert) {
       panel.innerHTML = `
-        <span class="status-pill ${statusClass(selectedAlert.gravidade)}">${selectedAlert.gravidade}</span>
-        <h3>${selectedAlert.tipo.replaceAll("_", " ")}</h3>
-        <p>${selectedAlert.descricao}</p>
-        <p><strong>Produto:</strong> ${selectedAlert.produto}</p>
-        <p><strong>Lote:</strong> ${selectedAlert.lote}</p>
-        <p><strong>Movimentação:</strong> ${selectedAlert.movimentacao || "não informada"}</p>
-        <p><strong>Auditoria:</strong> ${selectedAlert.responsavel_auditoria || "não informada"}</p>
+        <span class="status-pill ${statusClass(selectedAlert.gravidade)}">${escapeHtml(selectedAlert.gravidade || "")}</span>
+        <h3>${escapeHtml((selectedAlert.tipo || "").replaceAll("_", " "))}</h3>
+        <p>${escapeHtml(selectedAlert.descricao || "")}</p>
+        <p><strong>Status:</strong> ${escapeHtml(selectedAlert.status || "em análise")}</p>
+        <p><strong>Movimentação:</strong> ${escapeHtml(selectedAlert.movimentacao || "não informada")}</p>
+        <p><strong>Auditoria:</strong> ${escapeHtml(selectedAlert.responsavel_auditoria?.nome || "não informada")}</p>
         <p><strong>Emissão:</strong> ${formatDate(selectedAlert.data_emissao)}</p>
       `;
       return;
@@ -791,38 +326,41 @@ function renderDetails(produto = state.selected, selectedAlert = state.selectedA
     return;
   }
 
-  const timeline = produto.ultimas_movimentacoes
+  const movimentacoes = produto.movimentacoes || [];
+  const timeline = movimentacoes
+    .slice(-5)
     .map(
       (item) => `
         <div class="timeline-item">
-          <strong>${item.tipo.replaceAll("_", " ")}</strong>
-          <span>${formatDate(item.data_hora)} · ${item.local}</span>
+          <strong>${escapeHtml((item.tipo || "").replaceAll("_", " "))}</strong>
+          <span>${formatDate(item.data_hora)} · ${escapeHtml(item.destino || item.origem || "local não informado")}</span>
         </div>
       `,
     )
     .join("");
 
-  const alert = selectedAlert || produto.alertas_ativos?.[0];
+  const alertasProduto = produto.alertas || [];
+  const alert = selectedAlert || alertasProduto.find((item) => item.status !== "resolvido") || alertasProduto[0];
+  const localAtual = produto.locais?.atual;
+
   panel.innerHTML = `
-    <span class="status-pill ${statusClass(produto.status_atual)}">${produto.status_atual.replaceAll("_", " ")}</span>
-    <h3>${produto.nome}</h3>
-    <p>${produto.codigo} · ${produto.lote}</p>
-    <p><strong>Fabricante:</strong> ${produto.fabricante}</p>
-    <p><strong>Categoria:</strong> ${produto.categoria || "não informada"}</p>
-    <p><strong>Status atual:</strong> ${produto.status_atual.replaceAll("_", " ")}</p>
-    <p><strong>Local atual:</strong> ${produto.localizacao_atual?.nome || "Não informado"}</p>
-    <div class="timeline">${timeline}</div>
+    <span class="status-pill ${statusClass(produto.status_atual)}">${escapeHtml((produto.status_atual || "").replaceAll("_", " "))}</span>
+    <h3>${escapeHtml(produto.nome)}</h3>
+    <p>${escapeHtml(produto.codigo)}</p>
+    <p><strong>Fabricante:</strong> ${escapeHtml(produto.fabricante || "não informado")}</p>
+    <p><strong>Categoria:</strong> ${escapeHtml(produto.categoria || "não informada")}</p>
+    <p><strong>Local atual:</strong> ${escapeHtml(localAtual?.nome || "Não informado")}</p>
+    <div class="timeline">${timeline || "<p>Sem movimentações registradas.</p>"}</div>
     <div class="alert-detail-card">
-      <span class="status-pill ${alert ? statusClass(alert.gravidade) : "neutral"}">${alert ? alert.gravidade : "sem alerta"}</span>
-      <h4>${alert ? alert.tipo.replaceAll("_", " ") : "Sem alertas ativos"}</h4>
-      <p>${alert ? alert.descricao || "Alerta associado ao produto selecionado." : "Nenhuma inconsistência vinculada a este produto no momento."}</p>
+      <span class="status-pill ${alert ? statusClass(alert.gravidade) : "neutral"}">${alert ? escapeHtml(alert.gravidade) : "sem alerta"}</span>
+      <h4>${alert ? escapeHtml((alert.tipo || "").replaceAll("_", " ")) : "Sem alertas ativos"}</h4>
+      <p>${alert ? escapeHtml(alert.descricao || "Alerta associado ao produto selecionado.") : "Nenhuma inconsistência vinculada a este produto no momento."}</p>
       ${
         alert
           ? `<dl>
-              <div><dt>Lote</dt><dd>${alert.lote || produto.lote}</dd></div>
-              <div><dt>Movimentação</dt><dd>${alert.movimentacao || produto.ultima_movimentacao}</dd></div>
-              <div><dt>Status</dt><dd>${alert.status || "em análise"}</dd></div>
-              <div><dt>Auditoria</dt><dd>${alert.responsavel_auditoria || "não informada"}</dd></div>
+              <div><dt>Movimentação</dt><dd>${escapeHtml(alert.movimentacao || "não informada")}</dd></div>
+              <div><dt>Status</dt><dd>${escapeHtml(alert.status || "em análise")}</dd></div>
+              <div><dt>Auditoria</dt><dd>${escapeHtml(alert.responsavel_auditoria?.nome || "não informada")}</dd></div>
               <div><dt>Emissão</dt><dd>${formatDate(alert.data_emissao)}</dd></div>
             </dl>`
           : ""
@@ -852,7 +390,7 @@ function renderFindEvidence(result = state.findMeta, isError = false) {
     : result.mongoCommand;
 }
 
-async function executeFind(query = $("#productSearch")?.value.trim() || "", tab = state.tab) {
+async function executeFind(query = $("#productSearch")?.value.trim() || "", tab = "produtos") {
   const config = TRACKING_COLLECTIONS[tab];
   if (!config) return;
   if (!state.authenticated) {
@@ -874,20 +412,9 @@ async function executeFind(query = $("#productSearch")?.value.trim() || "", tab 
     });
     state.findResults[tab] = result.documents;
     state.findMeta = result;
-
-    if (tab === "produtos") {
-      state.selected = result.documents[0] || null;
-      state.selectedAlert = null;
-      state.selectedRecord = null;
-      renderDetails(state.selected);
-    } else if (tab === "movimentacoes" && result.documents[0]) {
-      state.selectedRecord = { type: "movimentacao", item: result.documents[0] };
-      renderRecordDetails("movimentacao", result.documents[0]);
-    } else if (tab === "locais" && result.documents[0]) {
-      state.selectedRecord = { type: "local", item: result.documents[0] };
-      renderRecordDetails("local", result.documents[0]);
-    }
-
+    state.selected = result.documents[0] || null;
+    state.selectedAlert = null;
+    renderDetails(state.selected);
     renderList();
     renderFindEvidence(result);
   } catch (error) {
@@ -937,7 +464,7 @@ function currentModule() {
 }
 
 function currentEntityKey() {
-  return state.module === "base" ? state.baseEntity : currentModule().entity;
+  return currentModule().entity;
 }
 
 function currentEntity() {
@@ -975,7 +502,7 @@ function localDateTimeValue(value) {
 }
 
 function moduleRecordTitle(record) {
-  return record.nome || record.produto_base || record.tipo || record.emissor || record.codigo || record.numero || record.email;
+  return record.nome || record.codigo || record.email;
 }
 
 function renderModuleResponse(value = {}, isError = false) {
@@ -1058,16 +585,6 @@ function renderModuleActions() {
   });
 }
 
-function sourceOptions(field) {
-  if (!field.source) return [];
-  const sourceConfig = CRUD_CONFIG[field.source];
-  const records = sourceConfig ? state[sourceConfig.stateKey] || [] : [];
-  return records
-    .map((record) => record[field.sourceValue])
-    .filter(Boolean)
-    .filter((value, index, values) => values.indexOf(value) === index);
-}
-
 function createModuleField(field, record) {
   const wrapper = document.createElement("label");
   wrapper.className = `module-field ${field.wide ? "is-wide" : ""} ${field.type === "checkbox" ? "is-checkbox" : ""}`;
@@ -1115,47 +632,8 @@ function createModuleField(field, record) {
   if (field.step) control.step = field.step;
   if (field.maxlength) control.maxLength = field.maxlength;
 
-  const options = sourceOptions(field);
-  if (options.length && control.tagName === "INPUT") {
-    const listId = `options-${field.name.replaceAll(".", "-")}`;
-    control.setAttribute("list", listId);
-    const dataList = document.createElement("datalist");
-    dataList.id = listId;
-    options.forEach((value) => {
-      const option = document.createElement("option");
-      option.value = value;
-      dataList.appendChild(option);
-    });
-    wrapper.appendChild(dataList);
-  }
-
   wrapper.appendChild(control);
   return wrapper;
-}
-
-function wireModuleReferences() {
-  const entityKey = currentEntityKey();
-  const findControl = (name) => document.querySelector(`#moduleForm [name="${name}"]`);
-
-  if (["alertas", "movimentacoes"].includes(entityKey)) {
-    const productControl = findControl("produto");
-    productControl?.addEventListener("change", () => {
-      const produto = state.produtos.find((item) => item.codigo === productControl.value);
-      const lotControl = findControl("lote");
-      if (produto && lotControl) lotControl.value = produto.lote || "";
-    });
-  }
-
-  if (entityKey === "produtos") {
-    const locationControl = findControl("localizacao_atual.nome");
-    locationControl?.addEventListener("change", () => {
-      const local = state.locais.find((item) => item.nome === locationControl.value);
-      const cityControl = findControl("localizacao_atual.cidade");
-      const stateControl = findControl("localizacao_atual.estado");
-      if (local && cityControl) cityControl.value = local.cidade || "";
-      if (local && stateControl) stateControl.value = local.estado || "";
-    });
-  }
 }
 
 function renderModuleForm() {
@@ -1208,7 +686,6 @@ function renderModuleForm() {
     actions.appendChild(clear);
   }
   form.appendChild(actions);
-  wireModuleReferences();
 }
 
 function renderModuleRecords() {
@@ -1263,10 +740,6 @@ function renderModule() {
   if ($("#moduleFormDescription")) $("#moduleFormDescription").textContent = descriptions[state.moduleAction];
   if ($("#moduleOperationBadge")) $("#moduleOperationBadge").textContent = state.moduleAction.toUpperCase();
 
-  const baseField = $("#baseEntityField");
-  if (baseField) baseField.hidden = state.module !== "base";
-  if ($("#baseEntitySelect")) $("#baseEntitySelect").value = state.baseEntity;
-
   renderModuleActions();
   renderModuleRecords();
   renderModuleForm();
@@ -1301,10 +774,6 @@ function buildModulePayload() {
     setNestedValue(payload, field.name, value);
   });
 
-  if (entityKey === "produtos") {
-    payload.ultimas_movimentacoes = payload.ultimas_movimentacoes || [];
-    payload.alertas_ativos = payload.alertas_ativos || [];
-  }
   return payload;
 }
 
@@ -1476,11 +945,6 @@ async function logout() {
   state.user = null;
   state.pendingAction = null;
   state.produtos = [];
-  state.alertas = [];
-  state.locais = [];
-  state.lotes = [];
-  state.notas = [];
-  state.movimentacoes = [];
   state.usuarios = [];
   state.findResults = {};
   renderStats(fallback.stats);
@@ -1647,14 +1111,6 @@ function setupEvents() {
     }
   });
 
-  $("#baseEntitySelect")?.addEventListener("change", (event) => {
-    state.baseEntity = event.currentTarget.value;
-    state.moduleSelectedRecord = null;
-    $("#moduleSearch").value = "";
-    renderModule();
-    renderModuleResponse({ colecao: currentEntity().label, operacao: state.moduleAction.toUpperCase() });
-  });
-
   $("#moduleSearch")?.addEventListener("input", renderModuleRecords);
   $("#moduleRefresh")?.addEventListener("click", loadData);
   $("#moduleForm")?.addEventListener("submit", handleModuleSubmit);
@@ -1729,32 +1185,16 @@ function setupReveal() {
 
 async function loadData() {
   state.mongoOnline = true;
-  const [connection, stats, produtos, alertas, locais, lotes, notas, movimentacoes, usuarios] = await Promise.all([
+  const [connection, stats, produtos, usuarios] = await Promise.all([
     window.mongoCrud?.status() || Promise.resolve({ connected: false }),
     getJson("stats", fallback.stats),
     getJson("produtos", fallback.produtos),
-    getJson("alertas", fallback.alertas),
-    getJson("locais", fallback.locais),
-    getJson("lotes", fallback.lotes),
-    getJson("notas", fallback.notas),
-    getJson("movimentacoes", fallback.movimentacoes),
     getJson("usuarios", fallback.usuarios),
   ]);
 
   state.produtos = produtos;
-  state.alertas = alertas;
-  state.locais = locais;
-  state.lotes = lotes;
-  state.notas = notas;
-  state.movimentacoes = movimentacoes;
   state.usuarios = usuarios;
-  state.findResults = {
-    produtos,
-    alertas,
-    locais,
-    notas,
-    movimentacoes,
-  };
+  state.findResults = { produtos };
   state.selected = produtos[0];
   renderStats(stats);
   const mongoStatus = $("#mongoStatus");
@@ -1765,7 +1205,6 @@ async function loadData() {
       : `MongoDB não conectado: ${connection.error || "inicie pelo comando npm start"}`;
     mongoStatus.dataset.state = state.mongoOnline ? "online" : "offline";
   }
-  if ($("#alertCount")) $("#alertCount").textContent = alertas.length;
   renderList();
   renderDetails();
   renderFindEvidence();
@@ -1784,7 +1223,6 @@ async function loadGuestState() {
       : `MongoDB não conectado: ${connection.error || "verifique o arquivo .env"}`;
     mongoStatus.dataset.state = connection.connected ? "online" : "offline";
   }
-  if ($("#alertCount")) $("#alertCount").textContent = "0";
   renderList();
   renderDetails();
   renderFindEvidence();

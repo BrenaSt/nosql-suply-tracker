@@ -73,5 +73,8 @@
         method: "DELETE",
       }),
     exportAll: () => request("/mongo/export"),
+    aggregateAlertas: () => request("/mongo/aggregations/alertas-ativos"),
+    aggregateAuditoria: (tamanho = 5) =>
+      request(`/mongo/aggregations/auditoria-amostra?tamanho=${encodeURIComponent(tamanho)}`),
   };
 })();

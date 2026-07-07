@@ -22,238 +22,277 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DB = os.getenv("MONGODB_DB", "origem-certa")
 
 
-def build_data(total=120):
+def user_ref(user):
+    return {
+        "email": user["email"],
+        "nome": user["nome"],
+        "documento": user["documento"],
+        "telefone": user["telefone"],
+    }
+
+
+def build_data(total=80):
     produtos_base = [
-        ("CAF", "Café Orgânico 500g", "alimentos", "Fazenda Minas Verdes LTDA"),
-        ("ACU", "Açúcar Refinado 1kg", "alimentos", "Usina Vale Claro"),
-        ("SAL", "Sal Marinho 500g", "alimentos", "Salinas Atlântico"),
-        ("ARR", "Arroz Integral 1kg", "alimentos", "Cooperativa Grão Vivo"),
-        ("MEL", "Mel Silvestre 300g", "alimentos", "Apiário Serra Azul"),
-        ("CHA", "Chá Verde 40g", "bebidas", "Ervas do Cerrado"),
+        ("CAF", "Cafe Organico 500g", "alimentos", "Fazenda Minas Verdes LTDA"),
+        ("ACU", "Acucar Refinado 1kg", "alimentos", "Usina Vale Claro"),
+        ("SAL", "Sal Marinho 500g", "alimentos", "Salinas Atlantico"),
+        ("ARR", "Arroz Integral 1kg", "alimentos", "Cooperativa Grao Vivo"),
+        ("MEL", "Mel Silvestre 300g", "alimentos", "Apiario Serra Azul"),
+        ("CHA", "Cha Verde 40g", "bebidas", "Ervas do Cerrado"),
         ("AZE", "Azeite Extra Virgem 500ml", "alimentos", "Oliva Sul Brasil"),
-        ("CAC", "Cacau em Pó 200g", "alimentos", "Cacau Bahia Premium"),
+        ("CAC", "Cacau em Po 200g", "alimentos", "Cacau Bahia Premium"),
     ]
     cidades = [
-        ("Uberlândia", "MG", -18.9186, -48.2772),
-        ("Ribeirão Preto", "SP", -21.1699, -47.8099),
-        ("São Paulo", "SP", -23.5505, -46.6333),
+        ("Uberlandia", "MG", -18.9186, -48.2772),
+        ("Ribeirao Preto", "SP", -21.1699, -47.8099),
+        ("Sao Paulo", "SP", -23.5505, -46.6333),
         ("Campinas", "SP", -22.9056, -47.0608),
         ("Belo Horizonte", "MG", -19.9167, -43.9345),
-        ("Goiânia", "GO", -16.6869, -49.2648),
+        ("Goiania", "GO", -16.6869, -49.2648),
         ("Curitiba", "PR", -25.4284, -49.2733),
         ("Rio de Janeiro", "RJ", -22.9068, -43.1729),
-        ("Vitória", "ES", -20.3155, -40.3128),
-        ("Brasília", "DF", -15.7939, -47.8828),
+        ("Vitoria", "ES", -20.3155, -40.3128),
+        ("Brasilia", "DF", -15.7939, -47.8828),
     ]
-    tipos_local = ["fabrica", "armazem", "centro_distribuicao", "loja", "transportadora"]
-    usuarios = ["João da Silva", "Maria Oliveira", "Ana Souza", "Carlos Lima", "Beatriz Rocha"]
-    usuarios_docs = [
+
+    # As 5 contas base do sistema. Cada uma assume um papel diferente em cada produto
+    # (remetente, recebedor, destinatario ou auditor) por meio de um rodizio (modulo 5).
+    usuarios = [
         {
             "email": "joao.silva@origemcerta.com",
-            "nome": "João da Silva",
-            "cargo": "Operador de Armazém",
+            "login": "joao.silva",
+            "nome": "Joao da Silva",
+            "documento": "123.456.789-10",
+            "telefone": "(34) 99999-0001",
+            "endereco": {"logradouro": "Rua das Acacias", "numero": "120", "cidade": "Uberlandia", "estado": "MG", "cep": "38400-000"},
+            "cargo": "Operador de armazem",
             "perfil": "operador",
             "ativo": True,
             "setor": "operacao",
         },
         {
             "email": "maria.oliveira@origemcerta.com",
+            "login": "maria.oliveira",
             "nome": "Maria Oliveira",
-            "cargo": "Auditora de Riscos",
+            "documento": "234.567.890-11",
+            "telefone": "(11) 98888-0002",
+            "endereco": {"logradouro": "Avenida Paulista", "numero": "900", "cidade": "Sao Paulo", "estado": "SP", "cep": "01310-000"},
+            "cargo": "Auditora de riscos",
             "perfil": "auditor",
             "ativo": True,
             "setor": "auditoria",
         },
         {
             "email": "ana.souza@origemcerta.com",
+            "login": "ana.souza",
             "nome": "Ana Souza",
-            "cargo": "Gestora Logística",
+            "documento": "345.678.901-12",
+            "telefone": "(31) 97777-0003",
+            "endereco": {"logradouro": "Rua da Bahia", "numero": "450", "cidade": "Belo Horizonte", "estado": "MG", "cep": "30160-011"},
+            "cargo": "Gestora logistica",
             "perfil": "gestor",
             "ativo": True,
             "setor": "gestao",
         },
         {
             "email": "carlos.lima@origemcerta.com",
+            "login": "carlos.lima",
             "nome": "Carlos Lima",
-            "cargo": "Operador de Transporte",
+            "documento": "456.789.012-13",
+            "telefone": "(21) 96666-0004",
+            "endereco": {"logradouro": "Rua Uruguaiana", "numero": "77", "cidade": "Rio de Janeiro", "estado": "RJ", "cep": "20050-090"},
+            "cargo": "Recebedor de mercadorias",
             "perfil": "operador",
             "ativo": True,
-            "setor": "operacao",
+            "setor": "recebimento",
         },
         {
             "email": "beatriz.rocha@origemcerta.com",
+            "login": "beatriz.rocha",
             "nome": "Beatriz Rocha",
-            "cargo": "Auditora Fiscal",
-            "perfil": "auditor",
+            "documento": "567.890.123-14",
+            "telefone": "(41) 95555-0005",
+            "endereco": {"logradouro": "Rua XV de Novembro", "numero": "300", "cidade": "Curitiba", "estado": "PR", "cep": "80020-310"},
+            "cargo": "Cliente destinataria",
+            "perfil": "cliente",
             "ativo": True,
-            "setor": "auditoria",
+            "setor": "cliente",
         },
     ]
-    eventos = ["produto_cadastrado", "saida_fabrica", "entrada_armazem", "saida_distribuicao", "entrega_confirmada"]
-    status_produto = ["cadastrado", "em_transito", "armazenado", "entregue", "autenticado"]
-    tipos_alerta = [
-        ("divergencia_quantidade", "Quantidade confirmada diferente da quantidade informada."),
-        ("rota_inconsistente", "Produto passou por uma rota diferente da prevista."),
-        ("consulta_duplicada", "Código consultado em locais diferentes em intervalo curto."),
-        ("nota_reutilizada", "Nota fiscal encontrada em mais de uma operação."),
-        ("origem_nao_reconhecida", "Origem registrada não consta entre locais autorizados."),
-    ]
 
-    locais = []
-    for i in range(total):
-        cidade, estado, lat, lng = cidades[i % len(cidades)]
-        tipo = tipos_local[i % len(tipos_local)]
-        locais.append(
-            {
-                "nome": f"{tipo.replace('_', ' ').title()} {cidade} {i + 1:03d}",
-                "tipo": tipo,
-                "cidade": cidade,
-                "estado": estado,
-                "pais": "Brasil",
-                "coordenadas": {
-                    "latitude": round(lat + ((i % 7) * 0.011), 6),
-                    "longitude": round(lng - ((i % 5) * 0.013), 6),
-                },
-            }
-        )
-
-    notas_fiscais = []
-    lotes = []
     produtos = []
-    movimentacoes = []
-    alertas = []
-
     for i in range(total):
         prefixo, nome_produto, categoria, fabricante = produtos_base[i % len(produtos_base)]
-        produto_codigo = f"{prefixo}-TRK-{i + 1:04d}"
-        lote_codigo = f"LOTE-{prefixo}-2026-{i + 1:04d}"
+        codigo = f"{prefixo}-TRK-{i + 1:04d}"
         nota_numero = f"NF-2026-{i + 1:05d}"
-        origem = locais[(i * 2) % len(locais)]
-        destino = locais[(i * 2 + 7) % len(locais)]
-        quantidade_prevista = 120 + (i * 9) % 880
+
+        origem_cidade = cidades[i % len(cidades)]
+        destino_cidade = cidades[(i + 3) % len(cidades)]
+        origem = {
+            "nome": f"Origem {origem_cidade[0]}",
+            "tipo": "origem",
+            "cidade": origem_cidade[0],
+            "estado": origem_cidade[1],
+            "pais": "Brasil",
+            "coordenadas": {"latitude": origem_cidade[2], "longitude": origem_cidade[3]},
+        }
+        destino = {
+            "nome": f"Destino {destino_cidade[0]}",
+            "tipo": "destino",
+            "cidade": destino_cidade[0],
+            "estado": destino_cidade[1],
+            "pais": "Brasil",
+            "coordenadas": {"latitude": destino_cidade[2], "longitude": destino_cidade[3]},
+        }
+
         tem_alerta = i % 3 == 0
-        risco = "alto" if i % 15 == 0 else "medio" if tem_alerta else "baixo"
-        divergencia = 2 + (i % 6) if tem_alerta else 0
-        quantidade_confirmada = max(0, quantidade_prevista - divergencia)
-        status = status_produto[i % len(status_produto)]
+        gravidade = "alta" if i % 9 == 0 else "media"
+        quantidade = 60 + (i * 7) % 400
+        divergencia = 3 + (i % 5) if tem_alerta else 0
+        quantidade_confirmada = max(0, quantidade - divergencia)
 
-        notas_fiscais.append(
-            {
-                "numero": nota_numero,
-                "emissor": fabricante,
-                "destinatario": destino["nome"],
-                "data_emissao": f"2026-06-{(i % 28) + 1:02d}T08:{i % 60:02d}:00Z",
-                "quantidade_declarada": quantidade_prevista,
-                "valor_total": round(1800 + (i * 137.45), 2),
-                "status_validacao": "suspeita" if risco == "alto" else "valida",
-            }
+        atual = (
+            {"nome": f"Ponto nao autorizado {destino_cidade[0]}", "cidade": destino_cidade[0], "estado": destino_cidade[1]}
+            if tem_alerta
+            else {"nome": destino["nome"], "cidade": destino["cidade"], "estado": destino["estado"]}
         )
+        status_atual = "em_alerta" if tem_alerta else ["recebido", "em_transito", "autenticado"][i % 3]
 
-        lotes.append(
+        remetente = usuarios[i % 5]
+        recebedor = usuarios[(i + 1) % 5]
+        destinatario = usuarios[(i + 2) % 5]
+        auditor = usuarios[(i + 3) % 5]
+
+        movimentacoes = [
             {
-                "codigo": lote_codigo,
-                "produto_base": nome_produto,
-                "fabricante": fabricante,
+                "codigo": f"MOV-2026-{i + 1:04d}-1",
+                "tipo": "produto_cadastrado",
+                "data_hora": f"2026-06-{(i % 28) + 1:02d}T08:{i % 60:02d}:00Z",
                 "origem": origem["nome"],
-                "destino_previsto": destino["nome"],
-                "quantidade_prevista": quantidade_prevista,
+                "destino": destino["nome"],
+                "usuario_responsavel": user_ref(remetente),
+                "quantidade_informada": quantidade,
+                "quantidade_confirmada": quantidade,
+                "verificacao": {"resultado": "regular", "motivos": []},
+            },
+            {
+                "codigo": f"MOV-2026-{i + 1:04d}-2",
+                "tipo": "saida_origem",
+                "data_hora": f"2026-06-{(i % 28) + 1:02d}T11:{(i + 1) % 60:02d}:00Z",
+                "origem": origem["nome"],
+                "destino": destino["nome"],
+                "usuario_responsavel": user_ref(remetente),
+                "quantidade_informada": quantidade,
+                "quantidade_confirmada": quantidade,
+                "verificacao": {"resultado": "regular", "motivos": []},
+            },
+            {
+                "codigo": f"MOV-2026-{i + 1:04d}-3",
+                "tipo": "entrada_destino",
+                "data_hora": f"2026-06-{(i % 28) + 1:02d}T14:{(i + 2) % 60:02d}:00Z",
+                "origem": atual["nome"] if tem_alerta else origem["nome"],
+                "destino": destino["nome"],
+                "usuario_responsavel": user_ref(recebedor),
+                "quantidade_informada": quantidade,
+                "quantidade_confirmada": quantidade,
+                "verificacao": {"resultado": "regular", "motivos": []},
+            },
+            {
+                "codigo": f"MOV-2026-{i + 1:04d}-4",
+                "tipo": "conferencia_recebimento",
+                "data_hora": f"2026-06-{(i % 28) + 1:02d}T17:{(i + 3) % 60:02d}:00Z",
+                "origem": atual["nome"] if tem_alerta else origem["nome"],
+                "destino": destino["nome"],
+                "usuario_responsavel": user_ref(recebedor),
+                "quantidade_informada": quantidade,
                 "quantidade_confirmada": quantidade_confirmada,
-                "status": status,
-                "nota_fiscal": nota_numero,
-                "indicadores_risco": {"possui_alerta": tem_alerta, "nivel_risco": risco},
-            }
-        )
+                "verificacao": (
+                    {"resultado": "suspeito", "motivos": ["produto_fora_do_local_desejado"]}
+                    if tem_alerta
+                    else {"resultado": "regular", "motivos": []}
+                ),
+            },
+        ]
 
-        historico_recente = []
-        for passo in range(2):
-            evento = eventos[(i + passo) % len(eventos)]
-            local = origem if passo == 0 else destino
-            historico_recente.append(
-                {
-                    "tipo": evento,
-                    "data_hora": f"2026-06-{(i % 28) + 1:02d}T{8 + passo * 4:02d}:{(i + passo) % 60:02d}:00Z",
-                    "local": local["nome"],
-                }
-            )
-
-        alertas_ativos = []
+        alertas = []
         if tem_alerta:
-            tipo_alerta, _ = tipos_alerta[i % len(tipos_alerta)]
-            alertas_ativos.append(
+            alertas.append(
                 {
-                    "tipo": tipo_alerta,
-                    "gravidade": "alta" if risco == "alto" else "media",
-                    "status": "em_analise",
+                    "codigo": f"ALT-2026-{i + 1:04d}",
+                    "tipo": "produto_fora_do_local_desejado",
+                    "descricao": "O produto saiu ou permaneceu fora do local desejado para entrega.",
+                    "gravidade": gravidade,
+                    "status": "resolvido" if i % 2 == 0 else "em_analise",
+                    "data_emissao": f"2026-06-{(i % 28) + 1:02d}T17:00:00Z",
+                    "movimentacao": movimentacoes[-1]["codigo"],
+                    "responsavel_auditoria": user_ref(auditor),
+                    "local_desejado": destino["nome"],
+                    "local_registrado": atual["nome"],
                 }
             )
 
         produtos.append(
             {
-                "codigo": produto_codigo,
+                "codigo": codigo,
                 "nome": nome_produto,
                 "categoria": categoria,
-                "lote": lote_codigo,
                 "fabricante": fabricante,
-                "status_atual": status,
-                "localizacao_atual": {"nome": destino["nome"], "cidade": destino["cidade"], "estado": destino["estado"]},
-                "ultima_movimentacao": historico_recente[-1]["tipo"],
-                "ultimas_movimentacoes": historico_recente,
-                "alertas_ativos": alertas_ativos,
+                "status_atual": status_atual,
+                "nota_fiscal": {
+                    "numero": nota_numero,
+                    "emissor": fabricante,
+                    "destinatario": destinatario["nome"],
+                    "data_emissao": f"2026-06-{(i % 28) + 1:02d}T08:00:00Z",
+                    "quantidade_declarada": quantidade,
+                    "valor_total": round(1500 + (i * 137.45), 2),
+                    "status_validacao": "em_analise" if tem_alerta else "valida",
+                },
+                "movimentacoes": movimentacoes,
+                "alertas": alertas,
+                "locais": {
+                    "origem": origem,
+                    "destino": destino,
+                    "local_desejado": destino["nome"],
+                    "atual": atual,
+                },
+                "usuarios_associados": {
+                    "remetente": user_ref(remetente),
+                    "destinatario": user_ref(destinatario),
+                    "recebedor": user_ref(recebedor),
+                },
+                "_remetente_email": remetente["email"],
+                "_destinatario_email": destinatario["email"],
             }
         )
 
-        for passo in range(2):
-            evento = eventos[(i + passo + 1) % len(eventos)]
-            suspeito = tem_alerta and passo == 1
-            movimentacoes.append(
-                {
-                    "codigo": f"MOV-2026-{i * 2 + passo + 1:04d}",
-                    "produto": produto_codigo,
-                    "lote": lote_codigo,
-                    "tipo": evento,
-                    "status_resultante": status,
-                    "data_hora": f"2026-06-{(i % 28) + 1:02d}T{9 + passo * 5:02d}:{(i * 3 + passo) % 60:02d}:00Z",
-                    "origem": origem["nome"],
-                    "destino": destino["nome"],
-                    "usuario": usuarios[(i + passo) % len(usuarios)],
-                    "nota_fiscal": nota_numero,
-                    "quantidade_informada": quantidade_prevista,
-                    "quantidade_confirmada": quantidade_confirmada if passo == 1 else quantidade_prevista,
-                    "verificacao": {
-                        "resultado": "suspeito" if suspeito else "regular",
-                        "motivos": ["divergencia_quantidade"] if suspeito else [],
-                    },
-                }
-            )
-
-        tipo_alerta, descricao_alerta = tipos_alerta[i % len(tipos_alerta)]
-        alertas.append(
+    usuarios_docs = []
+    for user in usuarios:
+        enviados = [
+            {"codigo": p["codigo"], "nome": p["nome"], "nota_fiscal": p["nota_fiscal"]["numero"]}
+            for p in produtos
+            if p["_remetente_email"] == user["email"]
+        ]
+        destinados = [
+            {"codigo": p["codigo"], "nome": p["nome"], "nota_fiscal": p["nota_fiscal"]["numero"]}
+            for p in produtos
+            if p["_destinatario_email"] == user["email"]
+        ]
+        usuarios_docs.append(
             {
-                "codigo": f"ALT-2026-{i + 1:04d}",
-                "tipo": tipo_alerta,
-                "descricao": descricao_alerta,
-                "gravidade": "alta" if i % 5 == 0 else "media" if i % 2 == 0 else "baixa",
-                "status": "resolvido" if i % 4 == 0 else "em_analise",
-                "produto": produto_codigo,
-                "lote": lote_codigo,
-                "movimentacao": eventos[(i + 2) % len(eventos)],
-                "data_emissao": f"2026-06-{(i % 28) + 1:02d}T14:{(i * 7) % 60:02d}:00Z",
-                "responsavel_auditoria": usuarios[(i + 1) % len(usuarios)],
+                **user,
+                "produtos_destinados": destinados,
+                "produtos_enviados": enviados,
             }
         )
 
-    return {
-        "usuarios": usuarios_docs,
-        "lotes": lotes,
-        "produtos": produtos,
-        "movimentacoes": movimentacoes,
-        "alertas": alertas,
-        "locais": locais,
-        "notas_fiscais": notas_fiscais,
-    }
+    for produto in produtos:
+        del produto["_remetente_email"]
+        del produto["_destinatario_email"]
+
+    return {"produtos": produtos, "usuarios": usuarios_docs}
 
 
-DATA = build_data(120)
+DATA = build_data(80)
 
 
 async def main():
@@ -273,14 +312,23 @@ async def main():
             await collection.delete_many({})
             if documents:
                 await collection.insert_many(documents)
+
+        # Indices ja existentes na modelagem embutida (produtos + usuarios).
         await db.produtos.create_index("codigo", unique=True)
-        await db.lotes.create_index("codigo", unique=True)
-        await db.notas_fiscais.create_index("numero", unique=True)
+        await db.produtos.create_index("nota_fiscal.numero", unique=True)
+        await db.produtos.create_index("usuarios_associados.destinatario.email")
+        await db.produtos.create_index("usuarios_associados.recebedor.email")
+        await db.produtos.create_index("alertas.codigo")
         await db.usuarios.create_index("email", unique=True)
-        await db.movimentacoes.create_index("codigo", unique=True)
-        await db.alertas.create_index("codigo", unique=True)
-        await db.movimentacoes.create_index("produto")
-        await db.alertas.create_index("produto")
+        await db.usuarios.create_index("login", unique=True)
+        await db.usuarios.create_index("produtos_destinados.codigo")
+
+        # Indices novos desta entrega, criados para sustentar as 2 aggregation pipelines
+        # (ver README.md > Aggregation Pipelines).
+        await db.produtos.create_index(
+            [("alertas.status", 1), ("alertas.gravidade", 1)], name="alertas.status_gravidade"
+        )
+        await db.usuarios.create_index([("ativo", 1), ("setor", 1)], name="ativo_setor")
     except ServerSelectionTimeoutError as exc:
         raise SystemExit(
             "Não foi possível conectar ao MongoDB. Confira se backend/.env tem a MONGODB_URI "
@@ -291,7 +339,7 @@ async def main():
     finally:
         client.close()
 
-    print(f"Banco '{MONGODB_DB}' populado com dados de exemplo.")
+    print(f"Banco '{MONGODB_DB}' populado com dados de exemplo (schema embutido: produtos + usuarios).")
 
 
 if __name__ == "__main__":

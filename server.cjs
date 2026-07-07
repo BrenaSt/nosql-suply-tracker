@@ -228,6 +228,22 @@ app.get(
   }),
 );
 
+app.get(
+  "/mongo/aggregations/alertas-ativos",
+  requireAuth,
+  asyncRoute(async (_, response) => {
+    response.json(await mongoService.aggregateAlertasAtivos());
+  }),
+);
+
+app.get(
+  "/mongo/aggregations/auditoria-amostra",
+  requireAuth,
+  asyncRoute(async (request, response) => {
+    response.json(await mongoService.aggregateAuditoriaAmostraRisco(request.query.tamanho));
+  }),
+);
+
 app.use((error, _, response, next) => {
   if (response.headersSent) return next(error);
   const duplicate = error?.code === 11000;
@@ -247,6 +263,14 @@ const server = app.listen(PORT, HOST, async () => {
       ? `MongoDB conectado: banco ${status.database}`
       : `MongoDB não conectado: ${status.error}`,
   );
+  if (status.connected) {
+    try {
+      await mongoService.ensureIndexes();
+      console.log("Índices das aggregation pipelines confirmados (alertas.status_gravidade, ativo_setor).");
+    } catch (error) {
+      console.log(`Não foi possível confirmar os índices novos: ${error.message}`);
+    }
+  }
   if (process.env.DEMO_ADMIN_PASSWORD) {
     console.log(`Conta de demonstração pronta: ${process.env.DEMO_ADMIN_USER || "admin"}`);
   }

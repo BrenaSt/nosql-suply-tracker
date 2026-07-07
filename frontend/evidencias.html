@@ -21,6 +21,7 @@
       <nav aria-label="Navegação das evidências">
         <a href="index.html">Aplicação</a>
         <a class="is-active" href="evidencias.html">Laboratório CRUD</a>
+        <a href="#agregacoes">Laboratório de Agregações</a>
       </nav>
     </header>
 
@@ -122,6 +123,56 @@
             <div class="documents-grid" id="documentsGrid"></div>
           </div>
         </section>
+      </section>
+
+      <section class="aggregation-lab" id="agregacoes" aria-label="Laboratório de agregações">
+        <header class="panel-heading">
+          <p class="eyebrow">nova entrega · aggregation pipelines</p>
+          <h2>Laboratório de Agregações</h2>
+          <p>
+            Rode as 2 pipelines direto contra o Atlas e veja o pipeline em JSON, a quantidade de
+            documentos retornados e uma amostra do resultado.
+          </p>
+        </header>
+
+        <div class="aggregation-grid">
+          <article class="aggregation-card">
+            <h3>Pipeline 1 · Relatório de alertas ativos</h3>
+            <p>
+              <code>match → unwind → match → lookup → unwind → set → project → sort → merge</code>,
+              ordenando por gravidade e tempo em aberto e enriquecendo o auditor responsável com o
+              cadastro atual em <code>usuarios</code>.
+            </p>
+            <button class="primary-button" id="runAlertasPipeline" type="button">Rodar pipeline de alertas</button>
+            <div class="aggregation-result" id="alertasPipelineResult" data-state="idle">
+              <pre id="alertasPipelineCommand">Ainda não executado.</pre>
+              <div class="aggregation-meta">
+                <span id="alertasPipelineCount">0 documento(s)</span>
+              </div>
+              <pre id="alertasPipelineSample">{}</pre>
+            </div>
+          </article>
+
+          <article class="aggregation-card">
+            <h3>Pipeline 2 · Auditoria por amostragem de risco</h3>
+            <p>
+              <code>match → sample → unwind → lookup → unwind → set → group → set → match → sort → project → merge</code>,
+              sorteando usuários ativos e medindo a exposição deles a produtos em risco.
+            </p>
+            <label class="aggregation-sample-size">
+              <span>Tamanho da amostra</span>
+              <input id="auditoriaSampleSize" type="number" min="1" max="20" value="5" />
+            </label>
+            <button class="primary-button" id="runAuditoriaPipeline" type="button">Rodar pipeline de auditoria</button>
+            <div class="aggregation-result" id="auditoriaPipelineResult" data-state="idle">
+              <pre id="auditoriaPipelineCommand">Ainda não executado.</pre>
+              <div class="aggregation-meta">
+                <span id="auditoriaPipelineCount">0 documento(s)</span>
+              </div>
+              <pre id="auditoriaPipelineSample">{}</pre>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="operation-log">

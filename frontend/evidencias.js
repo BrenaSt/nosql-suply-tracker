@@ -10,98 +10,8 @@
         codigo: "PROD-EVIDENCIA-0001",
         nome: "Produto para Evidencia CRUD",
         categoria: "demonstracao",
-        lote: "LOTE-CAF-2026-0001",
         fabricante: "Origem Certa",
-        status_atual: "cadastrado",
-        localizacao_atual: {
-          nome: "Fabrica Uberlandia 001",
-          cidade: "Uberlandia",
-          estado: "MG",
-        },
-        ultima_movimentacao: "produto_cadastrado",
-        ultimas_movimentacoes: [],
-        alertas_ativos: [],
-      },
-    },
-    lotes: {
-      label: "Lotes",
-      mongoName: "lotes",
-      key: "codigo",
-      template: {
-        codigo: "LOTE-EVIDENCIA-0001",
-        produto_base: "Produto para Evidencia CRUD",
-        fabricante: "Origem Certa",
-        origem: "Fabrica Uberlandia 001",
-        destino_previsto: "Centro Distribuicao Sao Paulo 008",
-        quantidade_prevista: 100,
-        quantidade_confirmada: 100,
-        status: "cadastrado",
-        nota_fiscal: "NF-2026-00001",
-        indicadores_risco: { possui_alerta: false, nivel_risco: "baixo" },
-      },
-    },
-    movimentacoes: {
-      label: "Movimentações",
-      mongoName: "movimentacoes",
-      key: "codigo",
-      template: {
-        codigo: "MOV-EVIDENCIA-0001",
-        produto: "CAF-TRK-0001",
-        lote: "LOTE-CAF-2026-0001",
-        tipo: "conferencia",
-        status_resultante: "armazenado",
-        data_hora: "2026-06-23T14:00:00Z",
-        origem: "Fabrica Uberlandia 001",
-        destino: "Centro Distribuicao Sao Paulo 008",
-        usuario: "Joao da Silva",
-        nota_fiscal: "NF-2026-00001",
-        quantidade_informada: 120,
-        quantidade_confirmada: 120,
-        verificacao: { resultado: "regular", motivos: [] },
-      },
-    },
-    alertas: {
-      label: "Alertas",
-      mongoName: "alertas",
-      key: "codigo",
-      template: {
-        codigo: "ALT-EVIDENCIA-0001",
-        tipo: "rota_inconsistente",
-        descricao: "Alerta criado para comprovar a operacao INSERT no MongoDB.",
-        gravidade: "media",
-        status: "em_analise",
-        produto: "CAF-TRK-0001",
-        lote: "LOTE-CAF-2026-0001",
-        movimentacao: "MOV-2026-0002",
-        data_emissao: "2026-06-23T15:00:00Z",
-        responsavel_auditoria: "Maria Oliveira",
-      },
-    },
-    locais: {
-      label: "Locais",
-      mongoName: "locais",
-      key: "nome",
-      template: {
-        nome: "Unidade Evidencia CRUD",
-        tipo: "armazem",
-        cidade: "Uberlandia",
-        estado: "MG",
-        pais: "Brasil",
-        coordenadas: { latitude: -18.9186, longitude: -48.2772 },
-      },
-    },
-    notas: {
-      label: "Notas fiscais",
-      mongoName: "notas_fiscais",
-      key: "numero",
-      template: {
-        numero: "NF-EVIDENCIA-00001",
-        emissor: "Origem Certa",
-        destinatario: "Unidade Evidencia CRUD",
-        data_emissao: "2026-06-23T12:00:00Z",
-        quantidade_declarada: 100,
-        valor_total: 2500,
-        status_validacao: "valida",
+        status_atual: "recebido",
       },
     },
     usuarios: {
@@ -138,16 +48,7 @@
   }
 
   function documentTitle(record) {
-    return (
-      record.nome ||
-      record.produto_base ||
-      record.tipo ||
-      record.emissor ||
-      record.codigo ||
-      record.numero ||
-      record.email ||
-      "Documento"
-    );
+    return record.nome || record.codigo || record.email || "Documento";
   }
 
   function keyValue(record) {
@@ -404,6 +305,57 @@
     }
   }
 
+  function renderAggregationResult(prefix, result, isError = false) {
+    const container = $(`#${prefix}PipelineResult`);
+    const command = $(`#${prefix}PipelineCommand`);
+    const count = $(`#${prefix}PipelineCount`);
+    const sample = $(`#${prefix}PipelineSample`);
+    if (!container) return;
+
+    container.dataset.state = isError ? "error" : "success";
+    if (isError) {
+      command.textContent = "Operação não concluída.";
+      count.textContent = result.message || "erro desconhecido";
+      sample.textContent = "";
+      return;
+    }
+
+    command.textContent = result.mongoCommand;
+    count.textContent = `${result.count} documento(s) retornado(s)`;
+    sample.textContent = pretty(result.documents.slice(0, 3));
+  }
+
+  async function runAlertasPipeline() {
+    const button = $("#runAlertasPipeline");
+    button.disabled = true;
+    button.textContent = "Executando...";
+    try {
+      const result = await window.mongoCrud.aggregateAlertas();
+      renderAggregationResult("alertas", result);
+    } catch (error) {
+      renderAggregationResult("alertas", { message: error.message }, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Rodar pipeline de alertas";
+    }
+  }
+
+  async function runAuditoriaPipeline() {
+    const button = $("#runAuditoriaPipeline");
+    const tamanho = Number($("#auditoriaSampleSize")?.value || 5);
+    button.disabled = true;
+    button.textContent = "Executando...";
+    try {
+      const result = await window.mongoCrud.aggregateAuditoria(tamanho);
+      renderAggregationResult("auditoria", result);
+    } catch (error) {
+      renderAggregationResult("auditoria", { message: error.message }, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Rodar pipeline de auditoria";
+    }
+  }
+
   async function verifyConnection() {
     const status = await window.mongoCrud.status();
     $("#mongoConnectionTitle").textContent = status.connected
@@ -451,6 +403,8 @@
       state.log = [];
       renderLog();
     });
+    $("#runAlertasPipeline").addEventListener("click", runAlertasPipeline);
+    $("#runAuditoriaPipeline").addEventListener("click", runAuditoriaPipeline);
   }
 
   async function init() {

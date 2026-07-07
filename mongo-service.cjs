@@ -8,12 +8,12 @@ const { MongoClient } = require("mongodb");
 
 const COLLECTIONS = {
   produtos: { mongoName: "produtos", key: "codigo", sort: { nome: 1 } },
-  lotes: { mongoName: "lotes", key: "codigo", sort: { codigo: 1 } },
-  movimentacoes: { mongoName: "movimentacoes", key: "codigo", sort: { data_hora: -1 } },
-  alertas: { mongoName: "alertas", key: "codigo", sort: { data_emissao: -1 } },
-  locais: { mongoName: "locais", key: "nome", sort: { nome: 1 } },
-  notas: { mongoName: "notas_fiscais", key: "numero", sort: { numero: 1 } },
   usuarios: { mongoName: "usuarios", key: "email", sort: { nome: 1 } },
+};
+
+const SEARCH_FIELDS = {
+  produtos: ["codigo", "nome", "fabricante", "categoria", "status_atual"],
+  usuarios: ["email", "login", "nome", "perfil", "setor"],
 };
 
 function loadEnvironment(projectDirectory) {
@@ -84,6 +84,7 @@ function configureDnsForMongo() {
 
 function serialize(value) {
   if (Array.isArray(value)) return value.map(serialize);
+  if (value instanceof Date) return value.toISOString();
   if (value && typeof value === "object") {
     const result = {};
     for (const [key, item] of Object.entries(value)) {
@@ -113,6 +114,159 @@ function safeTextEqual(left, right) {
   const leftHash = crypto.createHash("sha256").update(String(left)).digest();
   const rightHash = crypto.createHash("sha256").update(String(right)).digest();
   return crypto.timingSafeEqual(leftHash, rightHash);
+}
+
+// Pipeline 1: relatorio de alertas ativos (produtos.alertas embutido), enriquecido com o
+// cadastro atual do auditor responsavel (a copia embutida no alerta fica congelada no tempo).
+function buildAlertasAtivosPipeline() {
+  return [
+    { $match: { "alertas.status": { $ne: "resolvido" } } },
+    { $unwind: "$alertas" },
+    { $match: { "alertas.status": { $ne: "resolvido" } } },
+    {
+      $lookup: {
+        from: "usuarios",
+        localField: "alertas.responsavel_auditoria.email",
+        foreignField: "email",
+        as: "auditor_atual",
+      },
+    },
+    { $unwind: { path: "$auditor_atual", preserveNullAndEmptyArrays: true } },
+    {
+      $set: {
+        gravidade_peso: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$alertas.gravidade", "alta"] }, then: 3 },
+              { case: { $eq: ["$alertas.gravidade", "media"] }, then: 2 },
+            ],
+            default: 1,
+          },
+        },
+        dias_em_aberto: {
+          $dateDiff: { startDate: { $toDate: "$alertas.data_emissao" }, endDate: "$$NOW", unit: "day" },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: "$alertas.codigo",
+        produto_codigo: "$codigo",
+        produto_nome: "$nome",
+        categoria: 1,
+        alerta_codigo: "$alertas.codigo",
+        tipo: "$alertas.tipo",
+        descricao: "$alertas.descricao",
+        gravidade: "$alertas.gravidade",
+        gravidade_peso: 1,
+        status: "$alertas.status",
+        dias_em_aberto: 1,
+        local_desejado: "$alertas.local_desejado",
+        local_registrado: "$alertas.local_registrado",
+        auditor: {
+          nome: "$auditor_atual.nome",
+          email: "$auditor_atual.email",
+          cargo: "$auditor_atual.cargo",
+          setor: "$auditor_atual.setor",
+        },
+      },
+    },
+    { $sort: { gravidade_peso: -1, dias_em_aberto: -1 } },
+    {
+      $merge: {
+        into: "relatorio_alertas_ativos",
+        whenMatched: "replace",
+        whenNotMatched: "insert",
+      },
+    },
+  ];
+}
+
+// Pipeline 2: auditoria por amostragem — sorteia usuarios ativos e calcula a exposicao deles
+// a produtos "em risco" (status em_alerta ou com alerta nao resolvido).
+function buildAuditoriaAmostraPipeline(tamanhoAmostra) {
+  return [
+    { $match: { ativo: true } },
+    { $sample: { size: tamanhoAmostra } },
+    { $unwind: "$produtos_destinados" },
+    {
+      $lookup: {
+        from: "produtos",
+        localField: "produtos_destinados.codigo",
+        foreignField: "codigo",
+        as: "produto_info",
+      },
+    },
+    { $unwind: "$produto_info" },
+    {
+      $set: {
+        em_risco: {
+          $or: [
+            { $eq: ["$produto_info.status_atual", "em_alerta"] },
+            {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: { $ifNull: ["$produto_info.alertas", []] },
+                      cond: { $ne: ["$$this.status", "resolvido"] },
+                    },
+                  },
+                },
+                0,
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: { email: "$email", nome: "$nome", setor: "$setor", cargo: "$cargo" },
+        total_produtos_destinados: { $sum: 1 },
+        produtos_em_risco: { $sum: { $cond: ["$em_risco", 1, 0] } },
+        produtos_risco_detalhe: {
+          $push: {
+            $cond: [
+              "$em_risco",
+              { codigo: "$produto_info.codigo", nome: "$produto_info.nome", status_atual: "$produto_info.status_atual" },
+              "$$REMOVE",
+            ],
+          },
+        },
+      },
+    },
+    {
+      $set: {
+        percentual_risco: {
+          $round: [{ $multiply: [{ $divide: ["$produtos_em_risco", "$total_produtos_destinados"] }, 100] }, 1],
+        },
+      },
+    },
+    { $match: { produtos_em_risco: { $gt: 0 } } },
+    { $sort: { percentual_risco: -1 } },
+    {
+      $project: {
+        _id: "$_id.email",
+        email: "$_id.email",
+        nome: "$_id.nome",
+        setor: "$_id.setor",
+        cargo: "$_id.cargo",
+        total_produtos_destinados: 1,
+        produtos_em_risco: 1,
+        percentual_risco: 1,
+        produtos_risco_detalhe: 1,
+        data_amostragem: "$$NOW",
+      },
+    },
+    {
+      $merge: {
+        into: "auditoria_amostras_risco",
+        whenMatched: "replace",
+        whenNotMatched: "insert",
+      },
+    },
+  ];
 }
 
 class MongoService {
@@ -168,6 +322,21 @@ class MongoService {
     } catch (error) {
       return { connected: false, database: this.databaseName, error: error.message };
     }
+  }
+
+  // Cria (de forma idempotente) os indices que sustentam as 2 aggregation pipelines novas.
+  // Os demais indices (codigo, email, login, etc.) ja existem no Atlas e sao recriados pelo
+  // database/seed_data.py quando o banco e populado do zero.
+  async ensureIndexes() {
+    const database = await this.connect();
+    await database.collection("produtos").createIndex(
+      { "alertas.status": 1, "alertas.gravidade": 1 },
+      { name: "alertas.status_gravidade" },
+    );
+    await database.collection("usuarios").createIndex(
+      { ativo: 1, setor: 1 },
+      { name: "ativo_setor" },
+    );
   }
 
   async authenticateUser(identifier, password) {
@@ -234,40 +403,75 @@ class MongoService {
 
   prepareDocument(collectionName, document, existing = null) {
     const payload = { ...document };
-    if (collectionName !== "usuarios") return serialize(payload);
 
-    const password = String(payload.senha || "").trim();
-    delete payload.senha;
-    delete payload.senha_hash;
-    if (password) {
-      payload.senha_hash = hashPassword(password);
-    } else if (existing?.senha_hash) {
-      payload.senha_hash = existing.senha_hash;
+    if (collectionName === "usuarios") {
+      const password = String(payload.senha || "").trim();
+      delete payload.senha;
+      delete payload.senha_hash;
+      if (password) {
+        payload.senha_hash = hashPassword(password);
+      } else if (existing?.senha_hash) {
+        payload.senha_hash = existing.senha_hash;
+      }
+      if (payload.login) payload.login = String(payload.login).trim().toLowerCase();
+      if (payload.email) payload.email = String(payload.email).trim().toLowerCase();
+      if (!existing) {
+        payload.produtos_destinados = payload.produtos_destinados || [];
+        payload.produtos_enviados = payload.produtos_enviados || [];
+      }
+      return serialize(payload);
     }
-    if (payload.login) payload.login = String(payload.login).trim().toLowerCase();
-    if (payload.email) payload.email = String(payload.email).trim().toLowerCase();
-    return payload;
+
+    if (collectionName === "produtos" && !existing) {
+      // Um produto novo precisa de nota_fiscal.numero (indice unico) e das estruturas
+      // embutidas do schema atual, mesmo quando o formulario so envia os campos basicos.
+      const codigo = String(payload.codigo || `PROD-${Date.now()}`).toUpperCase();
+      payload.nota_fiscal = payload.nota_fiscal || {
+        numero: `NF-${codigo}`,
+        emissor: payload.fabricante || "",
+        destinatario: "",
+        data_emissao: new Date().toISOString(),
+        quantidade_declarada: 0,
+        valor_total: 0,
+        status_validacao: "em_analise",
+      };
+      payload.locais = payload.locais || {
+        origem: null,
+        destino: null,
+        local_desejado: null,
+        atual: null,
+      };
+      payload.usuarios_associados = payload.usuarios_associados || {};
+      payload.movimentacoes = payload.movimentacoes || [];
+      payload.alertas = payload.alertas || [];
+    }
+
+    return serialize(payload);
   }
 
   async stats() {
-    const database = await this.connect();
-    const [produtos, autenticados, lotes, alertas, movimentacoes, fraudes] = await Promise.all([
-      database.collection("produtos").countDocuments({}),
-      database.collection("produtos").countDocuments({
-        status_atual: { $in: ["entregue", "autenticado"] },
-      }),
-      database.collection("lotes").countDocuments({}),
-      database.collection("alertas").countDocuments({}),
-      database.collection("movimentacoes").countDocuments({}),
-      database.collection("alertas").countDocuments({ gravidade: "alta", status: "resolvido" }),
+    const produtos = await this.collection("produtos");
+    const [produtosRastreados, produtosAutenticados, alertasResolvidos, fraudesBloqueadas] = await Promise.all([
+      produtos.countDocuments({}),
+      produtos.countDocuments({ status_atual: "autenticado" }),
+      produtos
+        .aggregate([{ $unwind: "$alertas" }, { $match: { "alertas.status": "resolvido" } }, { $count: "total" }])
+        .toArray()
+        .then((rows) => rows[0]?.total || 0),
+      produtos
+        .aggregate([
+          { $unwind: "$alertas" },
+          { $match: { "alertas.status": "resolvido", "alertas.gravidade": "alta" } },
+          { $count: "total" },
+        ])
+        .toArray()
+        .then((rows) => rows[0]?.total || 0),
     ]);
     return {
-      produtos_rastreados: produtos,
-      produtos_autenticados: autenticados,
-      lotes_ativos: lotes,
-      alertas_analisados: alertas,
-      movimentacoes_hoje: movimentacoes,
-      tentativas_fraude_bloqueadas: fraudes,
+      produtos_rastreados: produtosRastreados,
+      produtos_autenticados: produtosAutenticados,
+      alertas_analisados: alertasResolvidos,
+      tentativas_fraude_bloqueadas: fraudesBloqueadas,
     };
   }
 
@@ -288,22 +492,10 @@ class MongoService {
     const limit = Math.min(Math.max(Number(options.limit || 200), 1), 500);
     let filter = {};
 
-    if (options.product && collectionName === "movimentacoes") {
-      filter.produto = options.product;
-    }
-
     if (options.query) {
       const escaped = String(options.query).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = { $regex: escaped, $options: "i" };
-      const fields = {
-        produtos: ["codigo", "nome", "lote"],
-        lotes: ["codigo", "produto_base", "fabricante"],
-        movimentacoes: ["codigo", "produto", "lote", "tipo"],
-        alertas: ["codigo", "tipo", "produto", "lote"],
-        locais: ["nome", "cidade", "estado"],
-        notas: ["numero", "emissor", "destinatario"],
-        usuarios: ["email", "nome", "perfil"],
-      }[collectionName];
+      const fields = SEARCH_FIELDS[collectionName] || [];
       filter.$or = fields.map((field) => ({ [field]: regex }));
     }
 
@@ -333,18 +525,7 @@ class MongoService {
     const collection = await this.collection(collectionName);
     const document = await collection.findOne({ [config.key]: keyValue });
     if (!document) throw new Error(`Documento nao encontrado: ${keyValue}`);
-
-    const result = serialize(document);
-    if (collectionName === "produtos") {
-      const database = await this.connect();
-      result.movimentacoes = serialize(
-        await database.collection("movimentacoes").find({ produto: keyValue }).sort({ data_hora: 1 }).toArray(),
-      );
-      result.alertas = serialize(
-        await database.collection("alertas").find({ produto: keyValue }).sort({ data_emissao: -1 }).toArray(),
-      );
-    }
-    return result;
+    return serialize(document);
   }
 
   async insert(collectionName, document) {
@@ -419,6 +600,51 @@ class MongoService {
       result[name] = await this.list(name, { limit: 500 });
     }
     return result;
+  }
+
+  // $merge nao devolve documentos para o cursor (a saida vai direto para a colecao de
+  // destino). Por isso limpamos a colecao materializada antes de rodar e, na sequencia,
+  // lemos de volta o que a propria pipeline acabou de gravar — assim a evidencia mostrada
+  // reflete exatamente esta execucao (importante no Pipeline 2, que usa $sample).
+  async aggregateAlertasAtivos() {
+    const database = await this.connect();
+    const pipeline = buildAlertasAtivosPipeline();
+    await database.collection("relatorio_alertas_ativos").deleteMany({});
+    await database.collection("produtos").aggregate(pipeline).toArray();
+    const documents = await database
+      .collection("relatorio_alertas_ativos")
+      .find({})
+      .sort({ gravidade_peso: -1, dias_em_aberto: -1 })
+      .toArray();
+    return {
+      operation: "AGGREGATE",
+      mongoCommand: `db.produtos.aggregate(${JSON.stringify(pipeline, null, 2)})`,
+      collection: "produtos",
+      pipeline,
+      count: documents.length,
+      documents: serialize(documents),
+    };
+  }
+
+  async aggregateAuditoriaAmostraRisco(tamanhoAmostra = 5) {
+    const database = await this.connect();
+    const tamanho = Math.min(Math.max(Number(tamanhoAmostra) || 5, 1), 20);
+    const pipeline = buildAuditoriaAmostraPipeline(tamanho);
+    await database.collection("auditoria_amostras_risco").deleteMany({});
+    await database.collection("usuarios").aggregate(pipeline).toArray();
+    const documents = await database
+      .collection("auditoria_amostras_risco")
+      .find({})
+      .sort({ percentual_risco: -1 })
+      .toArray();
+    return {
+      operation: "AGGREGATE",
+      mongoCommand: `db.usuarios.aggregate(${JSON.stringify(pipeline, null, 2)})`,
+      collection: "usuarios",
+      pipeline,
+      count: documents.length,
+      documents: serialize(documents),
+    };
   }
 
   async close() {

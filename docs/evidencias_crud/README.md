@@ -16,23 +16,22 @@ Salvar em `telas/`:
 
 ## Coleções
 
-Abrir cada coleção no Laboratório CRUD ou no MongoDB Compass e salvar em `colecoes/`:
+O banco tem hoje só 2 coleções (schema embutido — ver `README.md` da raiz). Abrir cada uma no
+Laboratório CRUD ou no MongoDB Compass e salvar em `colecoes/`:
 
 ```text
 01-produtos.png
-02-lotes.png
-03-movimentacoes.png
-04-alertas.png
-05-locais.png
-06-notas-fiscais.png
-07-usuarios.png
+02-usuarios.png
 ```
 
 ## Evidência esperada
 
 - `FIND`: retorno de `CAF-TRK-0001`;
-- `INSERT`: contagem de produtos muda de 120 para 121;
+- `INSERT`: contagem de produtos muda de 80 para 81;
 - `UPDATE`: resultado mostra `before` e `after`;
-- `DELETE`: contagem volta de 121 para 120;
+- `DELETE`: contagem volta de 81 para 80;
 - conexão: cabeçalho mostra `MongoDB conectado`;
 - código: `mongo-service.cjs` mostra `find`, `insertOne`, `updateOne` e `deleteOne`.
+
+As evidências das 2 aggregation pipelines novas (não fazem parte deste laboratório de CRUD)
+ficam em [`../evidencias_agregacoes/`](../evidencias_agregacoes/README.md).

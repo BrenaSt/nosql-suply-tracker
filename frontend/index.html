@@ -21,7 +21,7 @@
     <meta property="og:title" content="Origem Certa | Rastreamento de cadeia de suprimentos" />
     <meta
       property="og:description"
-      content="Monitore produtos, lotes, movimentacoes, alertas e notas fiscais em um aplicativo local conectado ao MongoDB."
+      content="Monitore produtos, alertas e movimentacoes embutidas em um aplicativo local conectado ao MongoDB."
     />
     <meta property="og:url" content="https://nosql-suply.free.nf/" />
     <meta property="og:image" content="https://nosql-suply.free.nf/og-image.png" />
@@ -87,19 +87,7 @@
             <div class="nav-tracking-menu" id="trackingNavMenu">
               <button type="button" data-track-tab="produtos">
                 <strong>Buscar produto</strong>
-                <small>FIND por código, nome ou lote</small>
-              </button>
-              <button type="button" data-open-feature="alertas" data-module-action="insert">
-                <strong>Criar alerta</strong>
-                <small>Registrar uma ocorrência</small>
-              </button>
-              <button type="button" data-track-tab="movimentacoes">
-                <strong>Buscar movimentação</strong>
-                <small>Consultar o histórico logístico</small>
-              </button>
-              <button type="button" data-track-tab="locais">
-                <strong>Consultar locais</strong>
-                <small>Visualizar pontos da cadeia</small>
+                <small>FIND por código, nome, categoria ou fabricante</small>
               </button>
             </div>
           </div>
@@ -146,8 +134,8 @@
             dados organizados em agregados NoSQL.
           </p>
           <form class="track-form" id="heroSearch">
-            <label class="sr-only" for="heroCode">Código, nome ou lote</label>
-            <input id="heroCode" name="codigo" type="search" placeholder="Digite código, nome ou lote" />
+            <label class="sr-only" for="heroCode">Código, nome, categoria ou fabricante</label>
+            <input id="heroCode" name="codigo" type="search" placeholder="Digite código, nome, categoria ou fabricante" />
             <button type="submit">Rastrear agora</button>
           </form>
         </div>
@@ -208,7 +196,7 @@
           <button class="feature-tab is-active" type="button" role="tab" aria-selected="true" data-feature="rastreamento">
             <span>01</span>
             <strong>Rastrear produto</strong>
-            <small>Buscar produto, alertas, movimentações e locais</small>
+            <small>Buscar produto e ver alertas e movimentações embutidas</small>
             <b>Ver opções ↓</b>
           </button>
           <button class="feature-tab" type="button" role="tab" aria-selected="false" data-feature="contas">
@@ -239,22 +227,7 @@
           <div class="tracking-branch-actions">
             <button type="button" data-track-tab="produtos">
               <strong>Buscar produto</strong>
-              <small>FIND por código, nome ou lote</small>
-              <span aria-hidden="true">→</span>
-            </button>
-            <button type="button" data-open-feature="alertas" data-module-action="insert">
-              <strong>Criar alerta</strong>
-              <small>Registrar uma nova ocorrência</small>
-              <span aria-hidden="true">→</span>
-            </button>
-            <button type="button" data-track-tab="movimentacoes">
-              <strong>Buscar movimentação</strong>
-              <small>Consultar o histórico logístico</small>
-              <span aria-hidden="true">→</span>
-            </button>
-            <button type="button" data-track-tab="locais">
-              <strong>Consultar locais</strong>
-              <small>Ver pontos da cadeia de suprimentos</small>
+              <small>FIND por código, nome, categoria ou fabricante</small>
               <span aria-hidden="true">→</span>
             </button>
           </div>
@@ -284,16 +257,12 @@
         <div class="app-panel reveal">
           <div class="tabs" role="tablist" aria-label="Dados da cadeia de suprimentos">
             <button class="tab is-active" type="button" data-tab="produtos">Produtos</button>
-            <button class="tab" type="button" data-tab="movimentacoes">Movimentações</button>
-            <button class="tab" type="button" data-tab="alertas">Alertas <span id="alertCount">0</span></button>
-            <button class="tab" type="button" data-tab="locais">Locais</button>
-            <button class="tab" type="button" data-tab="notas">Notas fiscais</button>
           </div>
 
           <form class="find-toolbar" id="trackingFindForm">
             <label class="search-box">
               <span aria-hidden="true">⌕</span>
-              <input id="productSearch" type="search" placeholder="Buscar por código, nome ou lote..." />
+              <input id="productSearch" type="search" placeholder="Buscar por código, nome, categoria ou fabricante..." />
             </label>
             <button class="find-button" type="submit">Executar FIND</button>
           </form>
@@ -345,15 +314,6 @@
                 Crie perfis de operador, auditor e gestor ou remova contas que não devem mais acessar o sistema.
               </p>
             </div>
-
-            <label class="base-entity-field" id="baseEntityField" hidden>
-              <span>Tipo de cadastro</span>
-              <select id="baseEntitySelect">
-                <option value="lotes">Lote</option>
-                <option value="locais">Local</option>
-                <option value="notas">Nota fiscal</option>
-              </select>
-            </label>
 
             <div class="module-actions" id="moduleActions" role="tablist" aria-label="Operações CRUD"></div>
 

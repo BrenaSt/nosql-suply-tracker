@@ -336,3 +336,22 @@ Portanto, a modelagem mais adequada para o sistema é:
 - **Locais, usuários e notas fiscais** como coleções auxiliares referenciadas.
 
 Essa estrutura se encaixa bem em bancos NoSQL orientados a documentos porque prioriza flexibilidade de esquema, escalabilidade horizontal e leitura rápida de informações relacionadas.
+
+---
+
+## 5. Atualização: schema em produção e as agregações desta entrega
+
+A implementação em produção (MongoDB Atlas) evoluiu para uma versão **ainda mais embutida** do
+que a descrita nas seções acima: em vez de 7 coleções por referência, o sistema hoje usa apenas
+2 coleções — `produtos` (com `nota_fiscal`, `movimentacoes[]`, `alertas[]`, `locais` e
+`usuarios_associados` embutidos no próprio documento) e `usuarios` (com `produtos_destinados[]`
+e `produtos_enviados[]` como referências leves). O detalhamento exato do schema real está no
+`README.md` da raiz, seção **Coleções**.
+
+As 2 aggregation pipelines implementadas nesta entrega (README.md > **Aggregation Pipelines**)
+são a materialização prática das "agregações" citadas no título deste documento: a primeira
+consolida os alertas embutidos em `produtos.alertas[]` num relatório único ordenado por
+gravidade e tempo em aberto (usando `$unwind` + `$lookup` para reencontrar o auditor
+responsável); a segunda sorteia uma amostra de usuários ativos e mede sua exposição a produtos
+em risco (usando `$sample` + `$lookup` + `$group`). Ambas persistem o resultado com `$merge`,
+funcionando como uma visão materializada consultável sem reprocessar a pipeline inteira.
