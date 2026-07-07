@@ -5,7 +5,7 @@
 
 ## 1. Hierarquia de Informações e Agregações
 
-<img src="./prints_telas/Diagrama-newSchemaAgregation.jpeg" width="400" height="600">
+<img src="./files/modelagem.jpeg" width="400" height="600">
 
 ---
 
