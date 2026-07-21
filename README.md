@@ -1,12 +1,11 @@
 # Origem Certa — Rastreamento de Cadeia de Suprimentos (MongoDB / NoSQL)
 
+[![clicaaa!!!!!](https://img.shields.io/badge/ABRIR_SITE:-_Origem_Certa-0f9f9a?style=flat-square&logo=render&logoColor=white)](https://origem-certa.onrender.com)
+
 Aplicação web de rastreamento de produtos, com **CRUD direto em coleções MongoDB** e,
 nesta entrega, **2 aggregation pipelines** para auditoria e detecção de risco. Roda como um
 site comum no navegador, servido por um pequeno servidor Node.js que mantém as credenciais
 protegidas no backend.
-
-> Projeto acadêmico de Banco de Dados NoSQL. Pode ser executado localmente ou publicado com o
-> backend no Render e o frontend no InfinityFree. Veja [DEPLOY.md](DEPLOY.md).
 
 ---
 
