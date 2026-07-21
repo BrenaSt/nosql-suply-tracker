@@ -76,5 +76,9 @@
     aggregateAlertas: () => request("/mongo/aggregations/alertas-ativos"),
     aggregateAuditoria: (tamanho = 5) =>
       request(`/mongo/aggregations/auditoria-amostra?tamanho=${encodeURIComponent(tamanho)}`),
+    estimativaProdutosConsultados: () => request("/redis/produtos-consultados-estimativa"),
+    syncGrafo: () => request("/neo4j/sync", { method: "POST" }),
+    usuariosCentrais: (limite = 10) =>
+      request(`/neo4j/usuarios-centrais?limite=${encodeURIComponent(limite)}`),
   };
 })();

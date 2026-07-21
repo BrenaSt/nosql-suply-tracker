@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Binários locais de Redis/Neo4j usados so em desenvolvimento (ver README > Redis e Neo4j)
+.local-tools/
+
 # Variáveis de ambiente e segredos (NUNCA versionar)
 .env
 .env.local

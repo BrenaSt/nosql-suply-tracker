@@ -6,11 +6,13 @@
   "main": "server.cjs",
   "scripts": {
     "start": "node server.cjs",
-    "check": "node --check server.cjs && node --check mongo-service.cjs && node --check frontend/mongo-web.js && node --check frontend/app.js && node --check frontend/evidencias.js"
+    "check": "node --check server.cjs && node --check mongo-service.cjs && node --check redis-service.cjs && node --check neo4j-service.cjs && node --check frontend/mongo-web.js && node --check frontend/app.js && node --check frontend/evidencias.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "mongodb": "^7.0.0"
+    "ioredis": "^5.11.1",
+    "mongodb": "^7.0.0",
+    "neo4j-driver": "^6.2.0"
   }
 }

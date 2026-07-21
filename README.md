@@ -23,6 +23,7 @@ protegidas no computador.
 - [Coleções](#coleções)
 - [Índices](#índices)
 - [Aggregation Pipelines](#aggregation-pipelines)
+- [Painel de Auditoria: Redis e Neo4j](#painel-de-auditoria-redis-e-neo4j)
 - [API HTTP](#api-http)
 - [Autenticação e segurança](#autenticação-e-segurança)
 - [Laboratório CRUD (evidências)](#laboratório-crud-evidências)
@@ -39,8 +40,17 @@ protegidas no computador.
 │  Navegador          │   para o localhost      │  Servidor Node.js     │   mongodb 7.x      │  MongoDB      │
 │  HTML / CSS / JS    │ ──────────────────────► │  Express (server.cjs) │ ─────────────────► │  Atlas        │
 │  (pasta frontend/)  │ ◄────────────────────── │  + mongo-service.cjs  │ ◄───────────────── │  (nuvem)      │
-└────────────────────┘     JSON / cookies       └──────────────────────┘                    └──────────────┘
+└────────────────────┘     JSON / cookies       └──────────┬───────────┘                    └──────────────┘
+                                                             │ conexão única reutilizável (opcional)
+                                                  ┌──────────┴───────────┐
+                                                  │ redis-service.cjs     │──► Redis (cache + HyperLogLog)
+                                                  │ neo4j-service.cjs     │──► Neo4j (grafo + PageRank/GDS)
+                                                  └──────────────────────┘
 ```
+
+MongoDB é a **única fonte oficial dos dados**. Redis e Neo4j são complementares e opcionais —
+sem eles configurados, tudo funciona igual, só os cards do Painel de Auditoria que dependem
+deles mostram "não configurado" (ver [Painel de Auditoria](#painel-de-auditoria-redis-e-neo4j)).
 
 **Por que existe um servidor local?** O navegador nunca deve receber a `MONGODB_URI`, pois a
 credencial ficaria visível no código-fonte e no DevTools. O `server.cjs` mantém a chave no
@@ -54,7 +64,9 @@ computador, autentica o usuário e executa as operações MongoDB solicitadas pe
 | ---------- | --------------------------------------------------------------------- |
 | Backend    | Node.js + Express 5 (CommonJS, arquivos `.cjs`), driver `mongodb` 7.x |
 | Frontend   | HTML5, CSS3 e JavaScript vanilla (sem framework, sem build)           |
-| Banco      | MongoDB Atlas (NoSQL, orientado a documentos)                         |
+| Banco      | MongoDB Atlas (NoSQL, orientado a documentos) — fonte oficial dos dados |
+| Cache/estruturas probabilísticas | Redis (`ioredis`) — complementar, opcional     |
+| Grafo e análise de rede | Neo4j + Graph Data Science (`neo4j-driver`) — complementar, opcional |
 | Seed       | Python 3 (`motor`, `pymongo`, `python-dotenv`)                        |
 | Sessão     | Cookie `HttpOnly` assinado por HMAC-SHA256 (sem dependência externa)  |
 
@@ -64,8 +76,10 @@ computador, autentica o usuário e executa as operações MongoDB solicitadas pe
 
 ```text
 nosql/
-├── server.cjs               # Servidor Express: serve o frontend e expõe as rotas /auth, /mongo
+├── server.cjs               # Servidor Express: serve o frontend e expõe as rotas /auth, /mongo, /redis, /neo4j
 ├── mongo-service.cjs        # Camada de acesso ao MongoDB: conexão, CRUD, auth, aggregation pipelines
+├── redis-service.cjs        # Conexão única com Redis: cache-aside (String) + HyperLogLog
+├── neo4j-service.cjs        # Conexão única com Neo4j: sync do grafo + PageRank (GDS)
 ├── package.json              # Metadados e scripts (start, check)
 ├── iniciar.cmd               # Inicializador para Windows (localiza Node mesmo fora do PATH)
 ├── .env.example               # Modelo de variáveis de ambiente (copie para .env)
@@ -124,6 +138,10 @@ Variáveis reconhecidas:
 | `NO_OPEN`               |     não     | —                            | `1` impede abrir o navegador automaticamente         |
 | `MONGODB_DNS_SERVERS`   |     não     | detectado                    | DNS para resolver SRV do Atlas (ex.: `8.8.8.8`)      |
 | `NODE_ENV`              |     não     | —                            | `production` marca o cookie como `Secure`            |
+| `REDIS_URL`             |     não     | —                            | Conexão do Redis (cache + HyperLogLog); sem ela, essas 2 funcionalidades ficam desativadas |
+| `NEO4J_URI`             |     não     | —                            | Conexão Bolt do Neo4j (ex.: `bolt://127.0.0.1:7687`) |
+| `NEO4J_USER`            |     não     | —                            | Usuário do Neo4j                                     |
+| `NEO4J_PASSWORD`        |     não     | —                            | Senha do Neo4j; sem as 3 variáveis, o painel de rede fica desativado |
 
 > O `.env` **não deve** ser enviado ao GitHub (já está no `.gitignore`). Use o `.env.example`
 > apenas como modelo, sem credenciais reais.
@@ -372,6 +390,101 @@ Mais evidências (criação dos índices, chamadas via HTTP autenticado) em
 
 ---
 
+## Painel de Auditoria: Redis e Neo4j
+
+Aba **"Painel de Auditoria"** no site principal (`index.html`), com 4 cards — cada um com
+estado de carregamento, erro e "sem dados", e um botão "Atualizar":
+
+1. **Pipeline 1 (alertas ativos)** e **Pipeline 2 (auditoria por amostragem)** — os mesmos
+   endpoints Mongo de sempre, só que agora com um selo indicando se a resposta veio do cache
+   Redis ou foi calculada na hora.
+2. **Produtos únicos consultados** — estimativa via **HyperLogLog** (Redis).
+3. **Usuários mais centrais na rede** — **PageRank** via **Neo4j + Graph Data Science**.
+
+O MongoDB continua sendo a única fonte oficial dos dados; Redis e Neo4j são complementares e
+**opcionais** — se `REDIS_URL` ou `NEO4J_URI`/`NEO4J_USER`/`NEO4J_PASSWORD` não estiverem
+definidos (ou a conexão falhar), o site inteiro continua funcionando normalmente e esses 2 cards
+mostram "não configurado" em vez de quebrar.
+
+### Redis — 2 funcionalidades com dados reais
+
+**Estrutura comum (String) — cache-aside das pipelines.** `redis-service.cjs` expõe
+`getOrSetCache(key, ttlSeconds, computeFn)`: tenta `GET`; se não achar, chama a pipeline de
+verdade (`computeFn`), guarda o resultado com `SET ... EX 60` e devolve. As 2 rotas de
+agregação (`/mongo/aggregations/*`) passaram a usar esse cache — a pipeline em si não foi
+alterada, só passou a ser chamada por trás de um cache de 60s.
+
+**Estrutura probabilística (HyperLogLog) — estimativa de produtos únicos consultados.** Toda
+busca real de produto (`GET /mongo/find/produtos?query=...`) chama, em segundo plano,
+`PFADD buscas:produtos:hll <termo>`. A rota `GET /redis/produtos-consultados-estimativa` chama
+`PFCOUNT` e devolve a estimativa — um contador aproximado que usa memória constante, ao
+contrário de guardar a lista inteira de termos já buscados.
+
+### Neo4j — grafo + PageRank (Graph Data Science)
+
+O grafo é **derivado do MongoDB** (nunca é a fonte oficial): `neo4j-service.cjs` lê `produtos` e
+`usuarios` (reaproveitando `mongoService.list(...)`, sem duplicar lógica) e recria os nós e
+relacionamentos a cada sincronização.
+
+```text
+(:Usuario {email, nome, perfil, setor})
+(:Produto {codigo, nome, categoria, status_atual})
+
+(u:Usuario)-[:ENVIOU]->(p:Produto)              -- produtos.usuarios_associados.remetente
+(u:Usuario)-[:RECEBEU]->(p:Produto)             -- produtos.usuarios_associados.recebedor
+(u:Usuario)-[:DESTINATARIO_DE]->(p:Produto)     -- produtos.usuarios_associados.destinatario
+(u:Usuario)-[:REGISTROU]->(p:Produto)           -- 1 por item de produtos.movimentacoes[]
+(u:Usuario)-[:AUDITOU]->(p:Produto)             -- 1 por item de produtos.alertas[]
+```
+
+**Algoritmo: PageRank.** A rede é bipartida (Usuário↔Produto); a projeção usada para o PageRank
+trata as 5 relações como **não direcionadas** (`orientation: 'UNDIRECTED'`), porque as arestas
+reais só vão de usuário para produto — sem isso, todo produto acumularia a pontuação e todo
+usuário ficaria preso no valor-base, sem nenhum jeito de diferenciar quem é mais central.
+Tratando como não direcionado, a centralidade flui nos dois sentidos da rede e o resultado
+identifica os usuários que mais aparecem em operações (envio, recebimento, movimentação,
+auditoria) — útil para **priorizar quem auditar primeiro**. Testado com os dados reais: os 5
+usuários envolvidos nas operações do seed ficaram com score muito acima de contas sem nenhuma
+operação registrada (score-base), confirmando que a métrica separa corretamente quem está
+"no centro da rede" de quem está isolado.
+
+`POST /neo4j/sync` recria o grafo (idempotente, `MERGE`) e roda automaticamente 1x no boot do
+servidor; o botão "Atualizar grafo" no site chama essa mesma rota antes de buscar o ranking.
+
+### Provisionar Redis e Neo4j localmente (sem Docker, sem instalador com admin)
+
+Se você não tem Redis/Neo4j instalados e não pode/quer usar Docker nem um instalador que peça
+permissão de administrador, dá para rodar os dois como **binários portáteis** (zip, sem
+instalação):
+
+1. **Redis**: baixe o build para Windows em
+   [`github.com/tporadowski/redis/releases`](https://github.com/tporadowski/redis/releases)
+   (ex.: `Redis-x64-5.0.14.1.zip`), extraia em qualquer pasta e rode
+   `redis-server.exe redis.windows.conf --port 6379`. Não instala serviço, não precisa de admin.
+2. **Java (necessário para o Neo4j)**: se não tiver Java 21+, baixe um JDK portátil em
+   [`adoptium.net`](https://adoptium.net/temurin/releases/) (build "zip", sem instalador) e
+   extraia em qualquer pasta.
+3. **Neo4j Community + GDS**: baixe o Community Server em
+   [`neo4j.com/deployment-center`](https://neo4j.com/deployment-center/) (arquivo `.zip`) e o
+   plugin Graph Data Science em
+   [`github.com/neo4j/graph-data-science/releases`](https://github.com/neo4j/graph-data-science/releases)
+   (arquivo `.jar`). Extraia o Neo4j, copie o `.jar` para a pasta `plugins/`, e adicione ao
+   final de `conf/neo4j.conf`:
+   ```conf
+   server.directories.plugins=plugins
+   dbms.security.procedures.unrestricted=gds.*
+   dbms.security.procedures.allowlist=gds.*
+   ```
+   Defina a senha inicial com `bin\neo4j-admin.bat dbms set-initial-password "SUA_SENHA"` e
+   suba com `bin\neo4j.bat console` (roda como processo comum, sem instalar serviço).
+4. No `.env`, aponte `REDIS_URL=redis://127.0.0.1:6379` e
+   `NEO4J_URI=bolt://127.0.0.1:7687` / `NEO4J_USER=neo4j` / `NEO4J_PASSWORD=SUA_SENHA`.
+
+Quem preferir Docker, Memurai/Neo4j Desktop ou um serviço em nuvem próprio pode usar — o código
+não muda, só o valor dessas variáveis de ambiente.
+
+---
+
 ## API HTTP
 
 Todas as rotas `/mongo/*` (exceto `/mongo/status`) exigem sessão autenticada.
@@ -402,12 +515,20 @@ Todas as rotas `/mongo/*` (exceto `/mongo/status`) exigem sessão autenticada.
 
 `:collection` aceita `produtos` ou `usuarios` (as únicas 2 coleções do schema atual).
 
-### Aggregation Pipelines
+### Aggregation Pipelines (com cache Redis)
 
 | Método | Rota                                       | Operação                                            |
 | ------ | ------------------------------------------- | ----------------------------------------------------- |
-| `GET`  | `/mongo/aggregations/alertas-ativos`        | Roda o **Pipeline 1** (relatório de alertas ativos)   |
-| `GET`  | `/mongo/aggregations/auditoria-amostra`     | Roda o **Pipeline 2** (`?tamanho=` define a amostra)  |
+| `GET`  | `/mongo/aggregations/alertas-ativos`        | Roda o **Pipeline 1** (relatório de alertas ativos), servido do cache Redis quando disponível |
+| `GET`  | `/mongo/aggregations/auditoria-amostra`     | Roda o **Pipeline 2** (`?tamanho=` define a amostra), idem |
+
+### Redis e Neo4j (Painel de Auditoria)
+
+| Método | Rota                                       | Operação                                            |
+| ------ | ------------------------------------------- | ----------------------------------------------------- |
+| `GET`  | `/redis/produtos-consultados-estimativa`    | Estimativa (HyperLogLog) de produtos únicos consultados |
+| `POST` | `/neo4j/sync`                               | Recria o grafo Usuario↔Produto a partir do MongoDB   |
+| `GET`  | `/neo4j/usuarios-centrais`                  | PageRank sobre o grafo (`?limite=` define quantos usuários retornar) |
 
 No frontend, essas chamadas são encapsuladas em `window.mongoCrud` (ver `frontend/mongo-web.js`).
 

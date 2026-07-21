@@ -3,11 +3,16 @@ const crypto = require("node:crypto");
 const { exec } = require("node:child_process");
 const express = require("express");
 const { MongoService } = require("./mongo-service.cjs");
+const { RedisService } = require("./redis-service.cjs");
+const { Neo4jService } = require("./neo4j-service.cjs");
 
 const PORT = Number(process.env.PORT || 5500);
 const HOST = process.env.HOST || "127.0.0.1";
 const app = express();
 const mongoService = new MongoService(__dirname);
+const redisService = new RedisService();
+const neo4jService = new Neo4jService();
+const AGGREGATION_CACHE_TTL_SECONDS = 60;
 const SESSION_COOKIE = "origem_certa_session";
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -168,6 +173,11 @@ app.get(
       request.params.collection === "produtos"
         ? await mongoService.findProduct(options.query, options.limit)
         : await mongoService.findDocuments(request.params.collection, options);
+    if (request.params.collection === "produtos" && options.query) {
+      // Melhor esforco: alimenta o HyperLogLog de produtos unicos consultados (Redis), sem
+      // atrasar nem arriscar a resposta do FIND em si.
+      redisService.trackProductSearch(options.query).catch(() => {});
+    }
     response.json(result);
   }),
 );
@@ -232,7 +242,12 @@ app.get(
   "/mongo/aggregations/alertas-ativos",
   requireAuth,
   asyncRoute(async (_, response) => {
-    response.json(await mongoService.aggregateAlertasAtivos());
+    const cache = await redisService.getOrSetCache(
+      "cache:aggregation:alertas-ativos",
+      AGGREGATION_CACHE_TTL_SECONDS,
+      () => mongoService.aggregateAlertasAtivos(),
+    );
+    response.json({ ...cache.value, cache: { hit: cache.hit, available: cache.cacheAvailable, ageSeconds: cache.ageSeconds } });
   }),
 );
 
@@ -240,7 +255,37 @@ app.get(
   "/mongo/aggregations/auditoria-amostra",
   requireAuth,
   asyncRoute(async (request, response) => {
-    response.json(await mongoService.aggregateAuditoriaAmostraRisco(request.query.tamanho));
+    const tamanho = request.query.tamanho || 5;
+    const cache = await redisService.getOrSetCache(
+      `cache:aggregation:auditoria-amostra:${tamanho}`,
+      AGGREGATION_CACHE_TTL_SECONDS,
+      () => mongoService.aggregateAuditoriaAmostraRisco(tamanho),
+    );
+    response.json({ ...cache.value, cache: { hit: cache.hit, available: cache.cacheAvailable, ageSeconds: cache.ageSeconds } });
+  }),
+);
+
+app.get(
+  "/redis/produtos-consultados-estimativa",
+  requireAuth,
+  asyncRoute(async (_, response) => {
+    response.json(await redisService.estimateUniqueProductSearches());
+  }),
+);
+
+app.post(
+  "/neo4j/sync",
+  requireAuth,
+  asyncRoute(async (_, response) => {
+    response.json(await neo4jService.syncFromMongo(mongoService));
+  }),
+);
+
+app.get(
+  "/neo4j/usuarios-centrais",
+  requireAuth,
+  asyncRoute(async (request, response) => {
+    response.json(await neo4jService.topUsuariosPorPageRank(request.query.limite));
   }),
 );
 
@@ -271,6 +316,28 @@ const server = app.listen(PORT, HOST, async () => {
       console.log(`Não foi possível confirmar os índices novos: ${error.message}`);
     }
   }
+
+  const redisStatus = await redisService.status();
+  console.log(
+    redisStatus.available
+      ? "Redis conectado (cache das pipelines + estimativa de produtos consultados)."
+      : `Redis indisponível (${redisStatus.uri}) — cache e estimativa ficam desativados, sem afetar o resto do site.`,
+  );
+
+  const neo4jStatus = await neo4jService.status();
+  if (neo4jStatus.available) {
+    try {
+      const sync = await neo4jService.syncFromMongo(mongoService);
+      console.log(
+        `Neo4j conectado e sincronizado: ${sync.usuarios} usuarios, ${sync.produtos} produtos, ${sync.relacionamentos} relacionamentos.`,
+      );
+    } catch (error) {
+      console.log(`Neo4j conectado, mas a sincronização inicial falhou: ${error.message}`);
+    }
+  } else {
+    console.log(`Neo4j indisponível (${neo4jStatus.uri}) — o painel de rede fica desativado, sem afetar o resto do site.`);
+  }
+
   if (process.env.DEMO_ADMIN_PASSWORD) {
     console.log(`Conta de demonstração pronta: ${process.env.DEMO_ADMIN_USER || "admin"}`);
   }
@@ -282,6 +349,8 @@ const server = app.listen(PORT, HOST, async () => {
 async function shutdown() {
   server.close();
   await mongoService.close();
+  await redisService.close();
+  await neo4jService.close();
   process.exit(0);
 }
 

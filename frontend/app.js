@@ -26,6 +26,7 @@ let state = {
   moduleSelectedRecord: null,
   findResults: {},
   findMeta: null,
+  auditoriaLoaded: false,
 };
 
 let eventsReady = false;
@@ -517,6 +518,147 @@ function renderModuleResponse(value = {}, isError = false) {
   }
 }
 
+function setAuditStatus(elementId, dataState, message) {
+  const element = $(`#${elementId}`);
+  if (!element) return;
+  element.dataset.state = dataState;
+  element.textContent = message;
+}
+
+function cacheNote(cache) {
+  if (!cache) return "";
+  if (cache.hit) return ` · atualizado há ${cache.ageSeconds}s`;
+  return " · atualizado agora";
+}
+
+function renderAuditList(elementId, items) {
+  const container = $(`#${elementId}`);
+  if (!container) return;
+  container.innerHTML = "";
+  items.forEach(({ title, subtitle, badgeText, badgeClass }) => {
+    const item = document.createElement("div");
+    item.className = "audit-list-item";
+    item.innerHTML = `
+      <div>
+        <strong>${escapeHtml(title)}</strong>
+        <small>${escapeHtml(subtitle || "")}</small>
+      </div>
+      ${badgeText ? `<span class="status-pill ${badgeClass || "neutral"}">${escapeHtml(badgeText)}</span>` : ""}
+    `;
+    container.appendChild(item);
+  });
+}
+
+async function loadAuditAlertas() {
+  setAuditStatus("auditAlertasStatus", "loading", "Consultando pipeline...");
+  $("#auditAlertasList").innerHTML = "";
+  try {
+    const result = await window.mongoCrud.aggregateAlertas();
+    const note = cacheNote(result.cache);
+    if (!result.documents.length) {
+      setAuditStatus("auditAlertasStatus", "empty", `Nenhum alerta ativo no momento.${note}`);
+      return;
+    }
+    setAuditStatus("auditAlertasStatus", "ok", `${result.count} alerta(s) ativo(s)${note}`);
+    renderAuditList(
+      "auditAlertasList",
+      result.documents.slice(0, 8).map((item) => ({
+        title: `${item.produto_nome} · ${item.produto_codigo}`,
+        subtitle: `${item.dias_em_aberto} dia(s) em aberto · auditor: ${item.auditor?.nome || "não informado"}`,
+        badgeText: item.gravidade,
+        badgeClass: statusClass(item.gravidade),
+      })),
+    );
+  } catch (error) {
+    setAuditStatus("auditAlertasStatus", "error", error.message);
+  }
+}
+
+async function loadAuditAmostra() {
+  const tamanho = Number($("#auditAmostraTamanho")?.value || 5);
+  setAuditStatus("auditAmostraStatus", "loading", "Sorteando amostra...");
+  $("#auditAmostraList").innerHTML = "";
+  try {
+    const result = await window.mongoCrud.aggregateAuditoria(tamanho);
+    const note = cacheNote(result.cache);
+    if (!result.documents.length) {
+      setAuditStatus("auditAmostraStatus", "empty", `Nenhum usuário da amostra tem produto em risco agora.${note}`);
+      return;
+    }
+    setAuditStatus("auditAmostraStatus", "ok", `${result.count} usuário(s) com produtos em risco${note}`);
+    renderAuditList(
+      "auditAmostraList",
+      result.documents.map((item) => ({
+        title: `${item.nome} · ${item.percentual_risco}% em risco`,
+        subtitle: `${item.setor || "setor não informado"} · ${item.produtos_em_risco}/${item.total_produtos_destinados} produtos destinados`,
+        badgeText: `${item.percentual_risco}%`,
+        badgeClass: statusClass(item.percentual_risco >= 30 ? "alta" : "media"),
+      })),
+    );
+  } catch (error) {
+    setAuditStatus("auditAmostraStatus", "error", error.message);
+  }
+}
+
+async function loadAuditRedis() {
+  setAuditStatus("auditRedisStatus", "loading", "Calculando alcance...");
+  const numberEl = $("#auditRedisNumber");
+  if (numberEl) numberEl.textContent = "";
+  try {
+    const result = await window.mongoCrud.estimativaProdutosConsultados();
+    if (!result.available) {
+      setAuditStatus("auditRedisStatus", "empty", "Indicador temporariamente indisponível.");
+      return;
+    }
+    setAuditStatus("auditRedisStatus", "ok", "Estimativa em tempo real, sem impacto na performance da busca.");
+    if (numberEl) numberEl.textContent = `~${result.estimate}`;
+  } catch (error) {
+    setAuditStatus("auditRedisStatus", "error", error.message);
+  }
+}
+
+async function loadAuditNeo4j() {
+  setAuditStatus("auditNeo4jStatus", "loading", "Atualizando rede e recalculando influência...");
+  $("#auditNeo4jList").innerHTML = "";
+  try {
+    const sync = await window.mongoCrud.syncGrafo();
+    if (!sync.available) {
+      setAuditStatus("auditNeo4jStatus", "empty", "Indicador temporariamente indisponível.");
+      return;
+    }
+    const rank = await window.mongoCrud.usuariosCentrais(8);
+    if (!rank.available || !rank.documents.length) {
+      setAuditStatus("auditNeo4jStatus", "empty", "Sem dados suficientes para calcular a rede ainda.");
+      return;
+    }
+    setAuditStatus(
+      "auditNeo4jStatus",
+      "ok",
+      `Rede atualizada: ${sync.usuarios} pessoas, ${sync.produtos} produtos, ${sync.relacionamentos} interações.`,
+    );
+    renderAuditList(
+      "auditNeo4jList",
+      rank.documents.map((item) => ({
+        title: item.nome || item.email,
+        subtitle: `${item.setor || "setor não informado"} · ${item.cargo || ""}`,
+        badgeText: `influência ${item.score}`,
+        badgeClass: "neutral",
+      })),
+    );
+  } catch (error) {
+    setAuditStatus("auditNeo4jStatus", "error", error.message);
+  }
+}
+
+function renderAuditoriaPanel() {
+  if (state.auditoriaLoaded) return;
+  state.auditoriaLoaded = true;
+  loadAuditAlertas();
+  loadAuditAmostra();
+  loadAuditRedis();
+  loadAuditNeo4j();
+}
+
 function setFeature(feature, shouldScroll = false) {
   if (!state.authenticated) {
     state.pendingAction = () => setFeature(feature, shouldScroll);
@@ -524,7 +666,8 @@ function setFeature(feature, shouldScroll = false) {
     return;
   }
   state.feature = feature;
-  if (feature !== "rastreamento") state.module = feature;
+  const isModuleFeature = feature === "contas" || feature === "produtos";
+  if (isModuleFeature) state.module = feature;
   if (feature !== "rastreamento") {
     $("#trackingBranch").hidden = true;
     $('[data-feature="rastreamento"]')?.classList.remove("is-expanded");
@@ -536,22 +679,25 @@ function setFeature(feature, shouldScroll = false) {
     button.setAttribute("aria-selected", String(active));
   });
 
+  const panelTarget = feature === "rastreamento" ? "rastreamento" : feature === "auditoria" ? "auditoria" : "modulo";
   $$("[data-feature-panel]").forEach((panel) => {
-    const active =
-      (feature === "rastreamento" && panel.dataset.featurePanel === "rastreamento") ||
-      (feature !== "rastreamento" && panel.dataset.featurePanel === "modulo");
+    const active = panel.dataset.featurePanel === panelTarget;
     panel.hidden = !active;
     panel.classList.toggle("is-active", active);
   });
 
-  if (feature !== "rastreamento") {
+  if (isModuleFeature) {
     state.moduleAction = "insert";
     state.moduleSelectedRecord = null;
     renderModule();
   }
 
+  if (feature === "auditoria") {
+    renderAuditoriaPanel();
+  }
+
   if (shouldScroll) {
-    (feature === "rastreamento" ? $("#rastreamento") : $("#gestao"))?.scrollIntoView({
+    (feature === "rastreamento" ? $("#rastreamento") : feature === "auditoria" ? $("#auditoria") : $("#gestao"))?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -947,6 +1093,7 @@ async function logout() {
   state.produtos = [];
   state.usuarios = [];
   state.findResults = {};
+  state.auditoriaLoaded = false;
   renderStats(fallback.stats);
   syncAuthenticationUI();
   renderList();
@@ -1114,6 +1261,10 @@ function setupEvents() {
   $("#moduleSearch")?.addEventListener("input", renderModuleRecords);
   $("#moduleRefresh")?.addEventListener("click", loadData);
   $("#moduleForm")?.addEventListener("submit", handleModuleSubmit);
+  $("#auditAlertasRefresh")?.addEventListener("click", loadAuditAlertas);
+  $("#auditAmostraRefresh")?.addEventListener("click", loadAuditAmostra);
+  $("#auditRedisRefresh")?.addEventListener("click", loadAuditRedis);
+  $("#auditNeo4jRefresh")?.addEventListener("click", loadAuditNeo4j);
   $$(".open-login").forEach((button) => {
     button.addEventListener("click", () => {
       state.authMode = "login";
