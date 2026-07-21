@@ -631,10 +631,12 @@ async function loadAuditNeo4j() {
       setAuditStatus("auditNeo4jStatus", "empty", "Sem dados suficientes para calcular a rede ainda.");
       return;
     }
+    const rankingMode =
+      rank.engine === "nodejs-pagerank" ? "PageRank compatível com AuraDB Free" : "PageRank via Neo4j GDS";
     setAuditStatus(
       "auditNeo4jStatus",
       "ok",
-      `Rede atualizada: ${sync.usuarios} pessoas, ${sync.produtos} produtos, ${sync.relacionamentos} interações.`,
+      `Rede atualizada: ${sync.usuarios} pessoas, ${sync.produtos} produtos, ${sync.relacionamentos} interações · ${rankingMode}.`,
     );
     renderAuditList(
       "auditNeo4jList",
