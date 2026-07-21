@@ -1,12 +1,12 @@
 # Origem Certa — Rastreamento de Cadeia de Suprimentos (MongoDB / NoSQL)
 
-Aplicação **local** de rastreamento de produtos, com **CRUD direto em coleções MongoDB** e,
+Aplicação web de rastreamento de produtos, com **CRUD direto em coleções MongoDB** e,
 nesta entrega, **2 aggregation pipelines** para auditoria e detecção de risco. Roda como um
 site comum no navegador, servido por um pequeno servidor Node.js que mantém as credenciais
-protegidas no computador.
+protegidas no backend.
 
-> Projeto acadêmico de Banco de Dados NoSQL. Não usa FastAPI, Render, Electron nem hospedagem
-> externa para o backend.
+> Projeto acadêmico de Banco de Dados NoSQL. Pode ser executado localmente ou publicado com o
+> backend no Render e o frontend no InfinityFree. Veja [DEPLOY.md](DEPLOY.md).
 
 ---
 
@@ -44,7 +44,7 @@ protegidas no computador.
                                                              │ conexão única reutilizável (opcional)
                                                   ┌──────────┴───────────┐
                                                   │ redis-service.cjs     │──► Redis (cache + HyperLogLog)
-                                                  │ neo4j-service.cjs     │──► Neo4j (grafo + PageRank/GDS)
+                                                  │ neo4j-service.cjs     │──► Neo4j (grafo + PageRank/GDS ou fallback Node.js)
                                                   └──────────────────────┘
 ```
 
@@ -66,7 +66,7 @@ computador, autentica o usuário e executa as operações MongoDB solicitadas pe
 | Frontend   | HTML5, CSS3 e JavaScript vanilla (sem framework, sem build)           |
 | Banco      | MongoDB Atlas (NoSQL, orientado a documentos) — fonte oficial dos dados |
 | Cache/estruturas probabilísticas | Redis (`ioredis`) — complementar, opcional     |
-| Grafo e análise de rede | Neo4j + Graph Data Science (`neo4j-driver`) — complementar, opcional |
+| Grafo e análise de rede | Neo4j + PageRank (`neo4j-driver`; GDS quando disponível, fallback Node.js no AuraDB Free) |
 | Seed       | Python 3 (`motor`, `pymongo`, `python-dotenv`)                        |
 | Sessão     | Cookie `HttpOnly` assinado por HMAC-SHA256 (sem dependência externa)  |
 
@@ -79,7 +79,7 @@ nosql/
 ├── server.cjs               # Servidor Express: serve o frontend e expõe as rotas /auth, /mongo, /redis, /neo4j
 ├── mongo-service.cjs        # Camada de acesso ao MongoDB: conexão, CRUD, auth, aggregation pipelines
 ├── redis-service.cjs        # Conexão única com Redis: cache-aside (String) + HyperLogLog
-├── neo4j-service.cjs        # Conexão única com Neo4j: sync do grafo + PageRank (GDS)
+├── neo4j-service.cjs        # Conexão única com Neo4j: sync do grafo + PageRank (GDS ou fallback Node.js)
 ├── package.json              # Metadados e scripts (start, check)
 ├── iniciar.cmd               # Inicializador para Windows (localiza Node mesmo fora do PATH)
 ├── .env.example               # Modelo de variáveis de ambiente (copie para .env)
@@ -399,7 +399,8 @@ estado de carregamento, erro e "sem dados", e um botão "Atualizar":
    endpoints Mongo de sempre, só que agora com um selo indicando se a resposta veio do cache
    Redis ou foi calculada na hora.
 2. **Produtos únicos consultados** — estimativa via **HyperLogLog** (Redis).
-3. **Usuários mais centrais na rede** — **PageRank** via **Neo4j + Graph Data Science**.
+3. **Usuários mais centrais na rede** — **PageRank** sobre o grafo do **Neo4j**, via GDS quando
+   disponível ou pelo fallback compatível no Node.js quando o provedor não oferece o plugin.
 
 O MongoDB continua sendo a única fonte oficial dos dados; Redis e Neo4j são complementares e
 **opcionais** — se `REDIS_URL` ou `NEO4J_URI`/`NEO4J_USER`/`NEO4J_PASSWORD` não estiverem
@@ -420,7 +421,7 @@ busca real de produto (`GET /mongo/find/produtos?query=...`) chama, em segundo p
 `PFCOUNT` e devolve a estimativa — um contador aproximado que usa memória constante, ao
 contrário de guardar a lista inteira de termos já buscados.
 
-### Neo4j — grafo + PageRank (Graph Data Science)
+### Neo4j — grafo + PageRank (GDS com fallback para AuraDB Free)
 
 O grafo é **derivado do MongoDB** (nunca é a fonte oficial): `neo4j-service.cjs` lê `produtos` e
 `usuarios` (reaproveitando `mongoService.list(...)`, sem duplicar lógica) e recria os nós e
@@ -447,6 +448,12 @@ auditoria) — útil para **priorizar quem auditar primeiro**. Testado com os da
 usuários envolvidos nas operações do seed ficaram com score muito acima de contas sem nenhuma
 operação registrada (score-base), confirmando que a métrica separa corretamente quem está
 "no centro da rede" de quem está isolado.
+
+O serviço tenta primeiro `gds.graph.project` + `gds.pageRank.stream`. Se esses procedimentos não
+existirem — caso do AuraDB Free — ele consulta no próprio Neo4j os mesmos nós e relacionamentos e
+executa no Node.js a fórmula iterativa do PageRank com fator de amortecimento `0.85`. Relações
+paralelas continuam contando separadamente e as 5 relações continuam não direcionadas. A API
+informa `engine: "neo4j-gds"` ou `engine: "nodejs-pagerank"`, e o card mostra qual modo foi usado.
 
 `POST /neo4j/sync` recria o grafo (idempotente, `MERGE`) e roda automaticamente 1x no boot do
 servidor; o botão "Atualizar grafo" no site chama essa mesma rota antes de buscar o ranking.
