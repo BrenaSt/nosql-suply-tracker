@@ -419,7 +419,7 @@ class MongoService {
         payload.produtos_destinados = payload.produtos_destinados || [];
         payload.produtos_enviados = payload.produtos_enviados || [];
       }
-      return serialize(payload);
+      return payload;
     }
 
     if (collectionName === "produtos" && !existing) {
